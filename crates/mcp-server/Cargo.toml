@@ -1,0 +1,13 @@
+[package]
+name = "mcp-server"
+version = "0.1.0"
+edition = "2024"
+description = "MCP protocol server implementation"
+
+[dependencies]
+tokio = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+async-trait = "0.1"
