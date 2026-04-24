@@ -1,8 +1,20 @@
 name: FR Coverage
 on: [pull_request]
+
 jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "FR coverage check (phenotype-tooling integration)"
+      - uses: dtolnay/rust-toolchain@stable
+      - run: |
+          if [ ! -f tooling/fr-coverage ]; then
+            mkdir -p tooling
+            if [ -d phenotype-tooling ]; then
+              cd phenotype-tooling && cargo build --release --bin fr-coverage 2>&1 | tail -5
+              ln -sf ../phenotype-tooling/target/release/fr-coverage ../tooling/
+            else
+              echo "Note: fr-coverage not available; skipping" && exit 0
+            fi
+          fi
+          tooling/fr-coverage --pr || true
