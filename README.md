@@ -271,3 +271,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md). Ownership lives in [CODEOWNERS](./CODE
 ## License
 
 Dual-licensed under Apache-2.0 OR MIT. See [LICENSE-APACHE](./LICENSE-APACHE) and [LICENSE-MIT](./LICENSE-MIT).
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
