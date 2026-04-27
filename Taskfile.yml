@@ -1,0 +1,22 @@
+version: '3'
+tasks:
+  default:
+    desc: List tasks
+    cmds: [task --list]
+  build:
+    desc: cargo build --workspace
+    cmds: [cargo build --workspace]
+  test:
+    desc: cargo test --workspace
+    cmds: [cargo test --workspace]
+  lint:
+    desc: cargo clippy + fmt --check
+    cmds:
+      - cargo clippy --workspace -- -D warnings
+      - cargo fmt --check
+  audit:
+    desc: cargo deny check
+    cmds: [cargo deny check]
+  ci:
+    desc: Run full local CI sweep
+    cmds: [task lint, task test, task audit]
