@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Quality Gate](https://github.com/KooshaPari/phenoAI/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/KooshaPari/phenoAI/actions/workflows/quality-gate.yml)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
+[![AI Slop Inside](https://sladge.net/badge.svg)](https://sladge.net)
 
 AI integration workspace for the Phenotype ecosystem — LLM routing, MCP server plumbing, and embedding primitives that Phenotype agents and services compose into higher-level AI behaviors.
 
