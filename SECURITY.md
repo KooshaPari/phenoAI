@@ -2,7 +2,7 @@
 
 ## Reporting
 Do not open public issues for security findings. Instead:
-- Email: security@phenotype.dev (or kooshapari@gmail.com until org mailbox exists)
+- Email: security@kooshapari.com (or kooshapari@gmail.com until org mailbox exists)
 - GitHub private vulnerability reporting: https://github.com/KooshaPari/phenoAI/security/advisories/new
 
 ## Scope
