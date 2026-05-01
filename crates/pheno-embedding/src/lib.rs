@@ -56,7 +56,7 @@ impl OpenAiEmbeddings {
             "model": model,
         });
 
-        let response = self.client
+        let _response = self.client
             .post("https://api.openai.com/v1/embeddings")
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&body)

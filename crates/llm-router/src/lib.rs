@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -91,7 +92,7 @@ impl LlmProvider for OpenAiProvider {
             "temperature": request.temperature.unwrap_or(0.7),
         });
 
-        let response = self.client
+        let _response = self.client
             .post(format!("{}/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&body)
@@ -122,14 +123,14 @@ impl LlmProvider for OpenAiProvider {
 /// LLM Router - routes requests to appropriate provider
 pub struct LlmRouter {
     providers: DashMap<String, Arc<dyn LlmProvider>>,
-    fallback: Option<Arc<dyn LlmProvider>>,
+    fallback: RwLock<Option<Arc<dyn LlmProvider>>>,
 }
 
 impl LlmRouter {
     pub fn new() -> Self {
         Self {
             providers: DashMap::new(),
-            fallback: None,
+            fallback: RwLock::new(None),
         }
     }
 
@@ -137,23 +138,24 @@ impl LlmRouter {
         self.providers.insert(prefix.to_string(), provider);
     }
 
-    pub fn set_fallback(&self, provider: Arc<dyn LlmProvider>) {
-        self.fallback = Some(provider);
+    pub async fn set_fallback(&self, provider: Arc<dyn LlmProvider>) {
+        *self.fallback.write().await = Some(provider);
     }
 
     pub async fn complete(&self, request: &CompletionRequest) -> Result<CompletionResponse, LlmError> {
         // Route based on model prefix
         let (prefix, _) = request.model.split_once('/').unwrap_or((&request.model, ""));
-        
+
         if let Some(provider) = self.providers.get(prefix) {
             return provider.complete(request).await;
         }
-        
+
         // Try fallback
-        if let Some(fallback) = &self.fallback {
-            return fallback.complete(request).await;
+        let fallback = self.fallback.read().await;
+        if let Some(provider) = fallback.as_ref() {
+            return provider.complete(request).await;
         }
-        
+
         Err(LlmError::InvalidModel(request.model.clone()))
     }
 }

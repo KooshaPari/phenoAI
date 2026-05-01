@@ -10,7 +10,7 @@ members = [
     "crates/mcp-server",
     "crates/pheno-embedding",
 ]
-resolver = "3"
+resolver = "2"
 
 [workspace.package]
 license = "MIT OR Apache-2.0"

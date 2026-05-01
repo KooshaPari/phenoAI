@@ -3,7 +3,6 @@
 //! Implements MCP protocol for AI tool/resource/prompt access.
 
 use anyhow::Result;
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
