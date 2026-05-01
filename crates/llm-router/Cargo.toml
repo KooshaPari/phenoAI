@@ -13,5 +13,5 @@ thiserror = { workspace = true }
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 async-trait = "0.1"
 tracing = "0.1"
-dashmap = "7.0"
-"tokio::sync" = { version = "1.44", features = ["RwLock"] }
+dashmap = "7.0.0-rc2"
+"tokio/sync" = { version = "1.44", features = ["RwLock"] }
