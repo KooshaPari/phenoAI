@@ -91,7 +91,7 @@ impl LlmProvider for OpenAiProvider {
             "temperature": request.temperature.unwrap_or(0.7),
         });
 
-        let response = self.client
+        let _response = self.client
             .post(format!("{}/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&body)
@@ -137,7 +137,7 @@ impl LlmRouter {
         self.providers.insert(prefix.to_string(), provider);
     }
 
-    pub fn set_fallback(&self, provider: Arc<dyn LlmProvider>) {
+    pub fn set_fallback(&mut self, provider: Arc<dyn LlmProvider>) {
         self.fallback = Some(provider);
     }
 
