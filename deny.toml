@@ -12,5 +12,6 @@ multiple-versions = "warn"
 wildcards = "deny"
 
 [sources]
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 unknown-registry = "warn"
 unknown-git = "warn"
