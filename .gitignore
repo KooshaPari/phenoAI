@@ -39,4 +39,4 @@ coverage/
 # Misc
 *.tmp
 *.bak
-*.orig
+*.origCargo.lock
