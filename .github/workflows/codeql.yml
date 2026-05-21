@@ -23,10 +23,10 @@ jobs:
       matrix:
         language: ["actions"]
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.1.1
-      - uses: github/codeql-action/init@v3
+      - uses: actions/checkout11bd71901bbe5b1630ceea73d27597364c9af683 # v4.1.1
+      - uses: github/codeql-action/init@c15bbf03b9a44c4c82ae160f148208819ad7f737 # v3
         with:
           languages: ${{ matrix.language }}
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@c15bbf03b9a44c4c82ae160f148208819ad7f737 # v3
         with:
           category: "/language:${{ matrix.language }}"
