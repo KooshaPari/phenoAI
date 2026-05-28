@@ -1,19 +1,23 @@
+permissions:
+  contents: read
+
 name: Quality Gate
+
+on:
+  push:
+  pull_request:
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-
-permissions:
-  contents: read
-on: [push, pull_request]
-
 jobs:
   gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     continue-on-error: true
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout11bd71901bbe5b1630ceea73d27597364c9af683 # v4.1.1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.1.1
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
       - run: |
           if [ ! -f tooling/quality-gate ]; then

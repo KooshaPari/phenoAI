@@ -1,13 +1,9 @@
-name: cargo-audit
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
+name: cargo-audit
 
 on:
-
-
-timeout-minutes: 10
   push:
     branches: [main]
     paths: ['Cargo.lock', 'Cargo.toml']
@@ -17,11 +13,16 @@ timeout-minutes: 10
     - cron: '37 5 * * 3'  # weekly Wednesday
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   audit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

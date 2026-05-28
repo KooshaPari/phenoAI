@@ -1,8 +1,9 @@
+permissions:
+  contents: read
+
 name: cargo-deny
 
 on:
-
-timeout-minutes: 10
   workflow_dispatch:
   pull_request:
     paths:
@@ -17,9 +18,14 @@ timeout-minutes: 10
   schedule:
     - cron: '0 9 * * 1'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   cargo-deny:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd

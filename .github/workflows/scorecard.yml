@@ -1,23 +1,24 @@
+permissions:
+  contents: read
+
 name: OpenSSF Scorecard
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 on:
-
-timeout-minutes: 10
   branch_protection_rule:
   schedule:
     - cron: '17 3 * * 6'
   push:
     branches: [main]
 
-permissions: read-all
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analysis:
     name: Scorecard analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       security-events: write
       id-token: write
@@ -25,7 +26,7 @@ jobs:
       actions: read
 
     steps:
-      - uses: actions/checkout11bd71901bbe5b1630ceea73d27597364c9af683 # v4.1.1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.1.1
         with:
           persist-credentials: false
 

@@ -1,13 +1,9 @@
-name: cargo-machete
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
+name: cargo-machete
 
 on:
-
-
-timeout-minutes: 10
   push:
     branches: [main]
     paths: ['Cargo.toml', '**/Cargo.toml']
@@ -17,9 +13,14 @@ timeout-minutes: 10
     - cron: '47 6 * * 4'  # weekly Thursday
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   machete:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: bnjbvr/cargo-machete@5cab879e5357f06fb126e7e53048e2f11620f856
