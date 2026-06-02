@@ -10,7 +10,7 @@ anyhow = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-reqwest = { version = "0.13", features = ["json", "rustls-tls-native-roots"] }
+reqwest = { version = "0.13", features = ["json", "rustls"] }
 async-trait = "0.1"
 tracing = "0.1"
 dashmap = "7.0.0-rc2"
