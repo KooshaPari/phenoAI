@@ -1,3 +1,6 @@
+> **Work state:** ACTIVE · **Progress:** `██████░░░░ 55%`
+> Rust AI-provider client crates; on feature branch, reqwest-rustls work in flight · updated 2026-06-02
+
 > **Pinned references (Phenotype-org)**
 > - MSRV: see rust-toolchain.toml
 > - cargo-deny config: see deny.toml
