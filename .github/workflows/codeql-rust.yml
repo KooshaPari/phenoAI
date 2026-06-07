@@ -1,6 +1,9 @@
 name: CodeQL (Rust)
 
 on:
+  workflow_dispatch:
+permissions:
+  contents: read
   push:
     branches: [main]
   pull_request:
@@ -8,6 +11,10 @@ on:
   schedule:
     - cron: '17 4 * * 2'
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 
 jobs:
   analyze:
@@ -20,7 +27,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
