@@ -1,6 +1,7 @@
 name: cargo-machete
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths: ['Cargo.toml', '**/Cargo.toml']
@@ -14,5 +15,12 @@ jobs:
   machete:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5@11bd71901bbe5b1630ceea73d27597364c9af683
-      - uses: bnjbvr/cargo-machete@main
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: bnjbvr/cargo-machete@fbb3fa79e64f5c1b1c0ce8e2cd4b65eef5d76c70
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
