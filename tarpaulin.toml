@@ -1,0 +1,30 @@
+# cargo-tarpaulin configuration
+# https://github.com/xd009642/tarpaulin
+
+[default]
+# Test timeout in seconds (helps CI not hang)
+timeout = 120
+
+# Generate cobertura for codecov upload
+out = ["Xml", "Html"]
+
+# Workspace-wide coverage
+workspace = true
+
+# All features
+all-features = true
+
+# Include integration tests
+run-types = ["Tests", "Doctests", "Benchmarks", "Examples"]
+
+# Exclude generated and vendored code
+exclude-files = [
+    "*/target/*",
+    "*/tests/*",
+    "*/examples/*",
+    "*/benches/*",
+]
+
+[report]
+# Fail CI if coverage drops below threshold
+fail-under = 60.0

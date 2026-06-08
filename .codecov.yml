@@ -1,0 +1,33 @@
+codecov:
+  require_ci_to_pass: true
+  notify:
+    after_n_builds: 1
+    wait_for_ci: true
+
+coverage:
+  precision: 1
+  round: down
+  range: "60...85"
+  status:
+    project:
+      default:
+        target: 60%
+        threshold: 5%
+        if_ci_failed: error
+    patch:
+      default:
+        target: 60%
+        threshold: 5%
+
+ignore:
+  - "**/target/**"
+  - "**/tests/**"
+  - "**/examples/**"
+  - "**/benches/**"
+
+comment:
+  layout: "header, diff, flags, components, files, footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
