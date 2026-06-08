@@ -3,6 +3,10 @@
 default:
     @just --list
 
+# Watch for changes (cargo-watch)
+dev:
+    cargo watch -x check -x test
+
 # Build workspace
 build:
     cargo build --workspace
@@ -19,6 +23,10 @@ lint:
 # Format code
 fmt:
     cargo fmt
+
+# Remove build artifacts
+clean:
+    cargo clean
 
 # Security audits (cargo-deny + cargo-audit)
 audit:
