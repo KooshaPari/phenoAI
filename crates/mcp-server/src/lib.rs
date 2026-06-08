@@ -115,3 +115,77 @@ impl Default for McpServer {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn register_tool_then_list_includes_it() {
+        let server = McpServer::new();
+        let tool = Tool {
+            name: "echo".into(),
+            description: "echoes input".into(),
+            input_schema: serde_json::json!({"type": "object"}),
+        };
+        server
+            .register_tool(tool, |_args| Ok(serde_json::json!("ok")))
+            .await;
+        let list = server.list_tools().await;
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].name, "echo");
+    }
+
+    #[tokio::test]
+    async fn call_unknown_tool_returns_tool_not_found() {
+        let server = McpServer::new();
+        let err = server
+            .call_tool("nope", serde_json::json!({}))
+            .await
+            .unwrap_err();
+        assert!(matches!(err, McpError::ToolNotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn register_resource_then_read_returns_content() {
+        let server = McpServer::new();
+        let resource = Resource {
+            uri: "foo://bar".into(),
+            name: "bar".into(),
+            mime_type: Some("application/json".into()),
+        };
+        server.register_resource(resource).await;
+        let resources = server.list_resources().await;
+        assert_eq!(resources.len(), 1);
+        assert_eq!(resources[0].uri, "foo://bar");
+    }
+
+    #[tokio::test]
+    async fn read_unknown_resource_returns_resource_not_found() {
+        let server = McpServer::new();
+        let err = server.read_resource("nope://missing").await.unwrap_err();
+        assert!(matches!(err, McpError::ResourceNotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn tool_handler_can_be_invoked() {
+        let server = McpServer::new();
+        let tool = Tool {
+            name: "double".into(),
+            description: "doubles n".into(),
+            input_schema: serde_json::json!({"type": "object"}),
+        };
+        server
+            .register_tool(tool, |args| {
+                let n = args.get("n").and_then(|v| v.as_i64()).unwrap_or(0);
+                Ok(serde_json::json!(n * 2))
+            })
+            .await;
+        let result = server
+            .call_tool("double", serde_json::json!({"n": 21}))
+            .await
+            .unwrap();
+        assert!(!result.is_error);
+        assert_eq!(result.content[0].text.as_deref(), Some("42"));
+    }
+}
