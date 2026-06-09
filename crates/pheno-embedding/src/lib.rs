@@ -48,15 +48,22 @@ impl OpenAiEmbeddings {
         }
     }
 
-    pub async fn embed(&self, request: &EmbeddingRequest) -> Result<EmbeddingResponse, EmbeddingError> {
-        let model = request.model.clone().unwrap_or_else(|| "text-embedding-3-small".to_string());
-        
+    pub async fn embed(
+        &self,
+        request: &EmbeddingRequest,
+    ) -> Result<EmbeddingResponse, EmbeddingError> {
+        let model = request
+            .model
+            .clone()
+            .unwrap_or_else(|| "text-embedding-3-small".to_string());
+
         let body = serde_json::json!({
             "input": request.texts,
             "model": model,
         });
 
-        let _response = self.client
+        let _response = self
+            .client
             .post("https://api.openai.com/v1/embeddings")
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&body)
