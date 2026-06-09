@@ -137,6 +137,19 @@ impl LlmRouter {
         self.providers.insert(prefix.to_string(), provider);
     }
 
+    /// Remove a previously-registered provider by prefix.
+    ///
+    /// Returns `true` if a provider was removed, `false` if no provider was
+    /// registered under `prefix`. The fallback, if any, is unaffected.
+    pub fn unregister_provider(&self, prefix: &str) -> bool {
+        self.providers.remove(prefix).is_some()
+    }
+
+    /// Returns `true` if a provider is registered under `prefix`.
+    pub fn has_provider(&self, prefix: &str) -> bool {
+        self.providers.contains_key(prefix)
+    }
+
     pub fn set_fallback(&mut self, provider: Arc<dyn LlmProvider>) {
         self.fallback = Some(provider);
     }
@@ -182,6 +195,34 @@ mod tests {
         router.register_provider("openai", p);
         assert_eq!(router.providers.len(), 1);
         assert!(router.providers.contains_key("openai"));
+    }
+
+    #[tokio::test]
+    async fn unregister_provider_removes_registered_provider_and_returns_true() {
+        let router = LlmRouter::new();
+        let p: Arc<dyn LlmProvider> = Arc::new(OpenAiProvider::new("sk-test".to_string()));
+        router.register_provider("openai", p);
+        assert!(router.has_provider("openai"));
+        assert!(router.unregister_provider("openai"));
+        assert!(!router.has_provider("openai"));
+        assert_eq!(router.providers.len(), 0);
+    }
+
+    #[test]
+    fn unregister_provider_returns_false_for_unknown_prefix() {
+        let router = LlmRouter::new();
+        assert!(!router.unregister_provider("missing"));
+    }
+
+    #[test]
+    fn unregister_provider_does_not_clear_fallback() {
+        let mut router = LlmRouter::new();
+        let p: Arc<dyn LlmProvider> = Arc::new(OpenAiProvider::new("sk-test".to_string()));
+        router.register_provider("openai", p);
+        let fb: Arc<dyn LlmProvider> = Arc::new(OpenAiProvider::new("sk-fb".to_string()));
+        router.set_fallback(fb);
+        assert!(router.unregister_provider("openai"));
+        assert!(router.fallback.is_some(), "fallback must survive unregister");
     }
 
     #[tokio::test]
