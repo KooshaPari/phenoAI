@@ -84,14 +84,15 @@ impl OpenAiProvider {
 impl LlmProvider for OpenAiProvider {
     async fn complete(&self, request: &CompletionRequest) -> Result<CompletionResponse, LlmError> {
         let start = std::time::Instant::now();
-        
+
         let body = serde_json::json!({
             "model": request.model,
             "messages": request.messages,
             "temperature": request.temperature.unwrap_or(0.7),
         });
 
-        let _response = self.client
+        let _response = self
+            .client
             .post(format!("{}/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&body)
@@ -141,19 +142,25 @@ impl LlmRouter {
         self.fallback = Some(provider);
     }
 
-    pub async fn complete(&self, request: &CompletionRequest) -> Result<CompletionResponse, LlmError> {
+    pub async fn complete(
+        &self,
+        request: &CompletionRequest,
+    ) -> Result<CompletionResponse, LlmError> {
         // Route based on model prefix
-        let (prefix, _) = request.model.split_once('/').unwrap_or((&request.model, ""));
-        
+        let (prefix, _) = request
+            .model
+            .split_once('/')
+            .unwrap_or((&request.model, ""));
+
         if let Some(provider) = self.providers.get(prefix) {
             return provider.complete(request).await;
         }
-        
+
         // Try fallback
         if let Some(fallback) = &self.fallback {
             return fallback.complete(request).await;
         }
-        
+
         Err(LlmError::InvalidModel(request.model.clone()))
     }
 }
@@ -261,8 +268,12 @@ mod tests {
             format!("{}", d),
         ];
         // All four messages must be unique.
-        let unique: std::collections::HashSet<&str> =
-            messages.iter().map(|s| s.as_str()).collect();
-        assert_eq!(unique.len(), 4, "duplicate Display for variant: {:?}", messages);
+        let unique: std::collections::HashSet<&str> = messages.iter().map(|s| s.as_str()).collect();
+        assert_eq!(
+            unique.len(),
+            4,
+            "duplicate Display for variant: {:?}",
+            messages
+        );
     }
 }

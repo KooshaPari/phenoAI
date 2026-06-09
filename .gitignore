@@ -40,5 +40,6 @@ coverage/
 *.tmp
 *.bak
 *.orig
-/worktrees/
-/*-wtrees/
+
+# Grade reports
+.grade-reports/
