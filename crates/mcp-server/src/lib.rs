@@ -6,8 +6,8 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use thiserror::Error;
+use tokio::sync::RwLock;
 
 #[derive(Error, Debug)]
 pub enum McpError {
@@ -69,27 +69,49 @@ impl McpServer {
         }
     }
 
-    pub async fn register_tool(&self, tool: Tool, handler: impl Fn(serde_json::Value) -> Result<serde_json::Value> + Send + Sync + 'static) {
-        self.tools.write().await.insert(tool.name.clone(), ToolHandler {
-            tool,
-            handler: Arc::new(handler),
-        });
+    pub async fn register_tool(
+        &self,
+        tool: Tool,
+        handler: impl Fn(serde_json::Value) -> Result<serde_json::Value> + Send + Sync + 'static,
+    ) {
+        self.tools.write().await.insert(
+            tool.name.clone(),
+            ToolHandler {
+                tool,
+                handler: Arc::new(handler),
+            },
+        );
     }
 
     pub async fn register_resource(&self, resource: Resource) {
-        self.resources.write().await.insert(resource.uri.clone(), resource);
+        self.resources
+            .write()
+            .await
+            .insert(resource.uri.clone(), resource);
     }
 
     pub async fn list_tools(&self) -> Vec<Tool> {
-        self.tools.read().await.values().map(|h| h.tool.clone()).collect()
+        self.tools
+            .read()
+            .await
+            .values()
+            .map(|h| h.tool.clone())
+            .collect()
     }
 
-    pub async fn call_tool(&self, name: &str, arguments: serde_json::Value) -> Result<ToolResult, McpError> {
+    pub async fn call_tool(
+        &self,
+        name: &str,
+        arguments: serde_json::Value,
+    ) -> Result<ToolResult, McpError> {
         let tools = self.tools.read().await;
-        let handler = tools.get(name).ok_or(McpError::ToolNotFound(name.to_string()))?;
-        
-        let result = (handler.handler)(arguments).map_err(|e| McpError::InvalidRequest(e.to_string()))?;
-        
+        let handler = tools
+            .get(name)
+            .ok_or(McpError::ToolNotFound(name.to_string()))?;
+
+        let result =
+            (handler.handler)(arguments).map_err(|e| McpError::InvalidRequest(e.to_string()))?;
+
         Ok(ToolResult {
             content: vec![ContentItem {
                 content_type: "text".to_string(),
@@ -105,7 +127,9 @@ impl McpServer {
 
     pub async fn read_resource(&self, uri: &str) -> Result<String, McpError> {
         let resources = self.resources.read().await;
-        let resource = resources.get(uri).ok_or(McpError::ResourceNotFound(uri.to_string()))?;
+        let resource = resources
+            .get(uri)
+            .ok_or(McpError::ResourceNotFound(uri.to_string()))?;
         Ok(format!("Resource: {}", resource.name))
     }
 }

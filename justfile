@@ -1,45 +1,26 @@
-# Phenotype-org standard justfile
+# Phenotype-org shared justfile. Imported from phenotype-tooling/just/phenotype.just.
+# To override a recipe locally, redefine it after the import.
+import? "/Users/kooshapari/CodeProjects/Phenotype/repos/phenotype-tooling/just/phenotype.just"
 
-default:
-    @just --list
+# Lint with clippy (warnings as errors) AND fmt-check
+lint: fmt-check (just --justfile {{justfile_path()}} lint)
 
-# Watch for changes (cargo-watch)
-dev:
-    cargo watch -x check -x test
+# Audit: cargo-deny + cargo-audit (combined)
+audit: (just --justfile {{justfile_path()}} deny) (just --justfile {{justfile_path()}} --justfile {{justfile_path()}} audit)
+# Grade targets (strictest checks — no caching)
+grade:
+    @echo "=== Running full grade ==="
+    ./grade.sh
 
-# Build workspace
-build:
-    cargo build --workspace
+grade-fast:
+    @echo "=== Running fast grade ==="
+    ./grade.sh --fast
 
-# Run tests
-test:
-    cargo test --workspace
+grade-json:
+    @echo "=== Running grade (JSON) ==="
+    ./grade.sh --json
 
-# Lint (clippy + fmt --check)
-lint:
-    cargo clippy --workspace -- -D warnings
-    cargo fmt --check
+grade-html:
+    @echo "=== Running grade (HTML) ==="
+    ./grade.sh --html
 
-# Format code
-fmt:
-    cargo fmt
-
-# Remove build artifacts
-clean:
-    cargo clean
-
-# Security audits (cargo-deny + cargo-audit)
-audit:
-    cargo deny check
-    cargo audit
-
-# Find unused dependencies
-unused:
-    cargo machete
-
-# Full local CI sweep
-ci: lint test audit unused
-
-# Generate docs
-docs:
-    cargo doc --no-deps --workspace
