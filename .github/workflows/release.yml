@@ -36,3 +36,10 @@ jobs:
               cargo publish -p "$name" --no-verify || echo "  skip $name (likely path-dep or already published)"
             done
           fi
+
+  check-cliff-template:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check cliff.toml adoption
+        run: ./scripts/check-cliff-template.sh
