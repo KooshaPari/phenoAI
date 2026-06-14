@@ -20,3 +20,8 @@ tasks:
   ci:
     desc: Run full local CI sweep
     cmds: [task lint, task test, task audit]
+
+  coverage:
+    desc: Measure code coverage (SSOT: see grade.sh for the canonical command).
+    cmds:
+      - cargo llvm-cov --workspace --fail-under-lines 85
