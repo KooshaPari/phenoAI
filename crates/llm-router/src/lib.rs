@@ -1,6 +1,17 @@
 //! LLM Router - Multi-provider LLM routing
 //!
 //! Inspired by litellm, provides unified interface for multiple LLM providers.
+//!
+//! **As of 2026-06-24, the recommended path is to delegate routing decisions
+//! to `substrate::omniroute_adapter::OmniRouteAdapter`**, which provides
+//! circuit breakers, fallback chains, and routing strategies. The local
+//! `LlmRouter`/`OpenAiProvider` types below remain for backwards compatibility
+//! and for consumers that don't depend on substrate; new consumers should
+//! import from [`substrate_omniroute`].
+//!
+//! See [`substrate_omniroute::LlmRouter`] for the recommended facade.
+
+pub mod substrate_omniroute;
 
 use anyhow::Result;
 use async_trait::async_trait;

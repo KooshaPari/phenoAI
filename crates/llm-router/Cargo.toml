@@ -14,4 +14,8 @@ reqwest = { version = "0.13", features = ["json", "rustls"] }
 async-trait = "0.1"
 tracing = "0.1"
 dashmap = "7.0.0-rc2"
+# substrate: shared hexagonal spine (omniroute-adapter replaces the
+# parallel LlmRouter impl this crate used to own). Pinned to the same
+# commit we used for the agentapi-plusplus fold. See plans/2026-06-22.
+substrate = { git = "https://github.com/KooshaPari/substrate.git", rev = "2a54c72", default-features = false, features = ["substrate-core", "omniroute-adapter"] }
 # tokio/sync is included via workspace tokio (full features)

@@ -1,9 +1,11 @@
-# PhenoAI - AI/LLM Workspace
-#
-# Contains AI-related crates:
-# - llm-router: LLM routing (inspired by litellm)
-# - mcp-server: MCP protocol server
-# - embedding: Embedding pipeline
+// PhenoAI - AI/LLM Workspace
+//
+// Contains AI-related crates:
+// - llm-router: LLM routing — substrate::omniroute-adapter shim
+//                (the actual routing logic lives in KooshaPari/substrate;
+//                 phenoAI delegates to it via a Cargo git dep)
+// - mcp-server: MCP protocol server
+// - embedding: Embedding pipeline
 [workspace]
 members = [
     "crates/llm-router",
@@ -22,3 +24,10 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
 anyhow = "1.0"
+
+# Substrate superset — single source of truth for routing logic.
+# phenoAI/llm-router re-exports substrate::omniroute-adapter as its public
+# API and does NOT reimplement routing locally. This keeps the Python and
+# Rust stacks in sync: any routing bug fix in substrate propagates here
+# via `cargo update -p substrate`.
+substrate = { git = "https://github.com/KooshaPari/substrate", branch = "main" }
