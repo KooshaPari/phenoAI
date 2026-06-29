@@ -9,6 +9,10 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
 
+// ---------------------------------------------------------------------------
+// Error types
+// ---------------------------------------------------------------------------
+
 #[derive(Error, Debug)]
 pub enum McpError {
     #[error("tool not found: {0}")]
@@ -18,6 +22,27 @@ pub enum McpError {
     #[error("invalid request: {0}")]
     InvalidRequest(String),
 }
+
+impl McpError {
+    /// Returns a human-readable recovery hint for this error.
+    pub fn recovery_hint(&self) -> &'static str {
+        match self {
+            McpError::ToolNotFound(_) => {
+                "Verify the tool name is correct. Use list_tools() to see available tools."
+            }
+            McpError::ResourceNotFound(_) => {
+                "Verify the resource URI is correct. Use list_resources() to see available resources."
+            }
+            McpError::InvalidRequest(_) => {
+                "Check that the request payload matches the expected schema for this tool/resource."
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Core data types
+// ---------------------------------------------------------------------------
 
 /// Tool definition
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,16 +74,20 @@ pub struct Resource {
     pub mime_type: Option<String>,
 }
 
-/// MCP Server
-pub struct McpServer {
-    tools: Arc<RwLock<HashMap<String, ToolHandler>>>,
-    resources: Arc<RwLock<HashMap<String, Resource>>>,
-}
-
 #[derive(Clone)]
 pub struct ToolHandler {
     pub tool: Tool,
     pub handler: Arc<dyn Fn(serde_json::Value) -> Result<serde_json::Value> + Send + Sync>,
+}
+
+// ---------------------------------------------------------------------------
+// MCP Server
+// ---------------------------------------------------------------------------
+
+/// MCP Server
+pub struct McpServer {
+    tools: Arc<RwLock<HashMap<String, ToolHandler>>>,
+    resources: Arc<RwLock<HashMap<String, Resource>>>,
 }
 
 impl McpServer {
@@ -74,6 +103,7 @@ impl McpServer {
         tool: Tool,
         handler: impl Fn(serde_json::Value) -> Result<serde_json::Value> + Send + Sync + 'static,
     ) {
+        tracing::debug!(tool = %tool.name, "registering tool");
         self.tools.write().await.insert(
             tool.name.clone(),
             ToolHandler {
@@ -84,34 +114,43 @@ impl McpServer {
     }
 
     pub async fn register_resource(&self, resource: Resource) {
+        tracing::debug!(resource = %resource.uri, "registering resource");
         self.resources
             .write()
             .await
             .insert(resource.uri.clone(), resource);
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn list_tools(&self) -> Vec<Tool> {
-        self.tools
+        let tools = self
+            .tools
             .read()
             .await
             .values()
             .map(|h| h.tool.clone())
-            .collect()
+            .collect::<Vec<_>>();
+        tracing::debug!(count = tools.len(), "listing tools");
+        tools
     }
 
+    #[tracing::instrument(skip(self, arguments))]
     pub async fn call_tool(
         &self,
         name: &str,
         arguments: serde_json::Value,
     ) -> Result<ToolResult, McpError> {
+        tracing::debug!(tool = %name, "calling tool");
         let tools = self.tools.read().await;
-        let handler = tools
-            .get(name)
-            .ok_or(McpError::ToolNotFound(name.to_string()))?;
+        let handler = tools.get(name).ok_or_else(|| {
+            tracing::warn!(tool = %name, "tool not found");
+            McpError::ToolNotFound(name.to_string())
+        })?;
 
         let result =
             (handler.handler)(arguments).map_err(|e| McpError::InvalidRequest(e.to_string()))?;
 
+        tracing::info!(tool = %name, "tool called successfully");
         Ok(ToolResult {
             content: vec![ContentItem {
                 content_type: "text".to_string(),
@@ -121,15 +160,21 @@ impl McpServer {
         })
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn list_resources(&self) -> Vec<Resource> {
-        self.resources.read().await.values().cloned().collect()
+        let resources: Vec<Resource> = self.resources.read().await.values().cloned().collect();
+        tracing::debug!(count = resources.len(), "listing resources");
+        resources
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn read_resource(&self, uri: &str) -> Result<String, McpError> {
+        tracing::debug!(resource = %uri, "reading resource");
         let resources = self.resources.read().await;
-        let resource = resources
-            .get(uri)
-            .ok_or(McpError::ResourceNotFound(uri.to_string()))?;
+        let resource = resources.get(uri).ok_or_else(|| {
+            tracing::warn!(resource = %uri, "resource not found");
+            McpError::ResourceNotFound(uri.to_string())
+        })?;
         Ok(format!("Resource: {}", resource.name))
     }
 }
@@ -139,6 +184,10 @@ impl Default for McpServer {
         Self::new()
     }
 }
+
+// ---------------------------------------------------------------------------
+// Unit tests
+// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
@@ -211,5 +260,20 @@ mod tests {
             .unwrap();
         assert!(!result.is_error);
         assert_eq!(result.content[0].text.as_deref(), Some("42"));
+    }
+
+    // -- new tests for recovery_hint --------------------------------------
+
+    #[test]
+    fn mcp_error_recovery_hints_are_not_empty() {
+        let variants: [McpError; 3] = [
+            McpError::ToolNotFound("x".into()),
+            McpError::ResourceNotFound("x".into()),
+            McpError::InvalidRequest("x".into()),
+        ];
+        for v in &variants {
+            let hint = v.recovery_hint();
+            assert!(!hint.is_empty(), "empty recovery hint for {v}");
+        }
     }
 }

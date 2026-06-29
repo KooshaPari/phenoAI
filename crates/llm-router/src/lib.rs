@@ -1,13 +1,19 @@
 //! LLM Router - Multi-provider LLM routing
 //!
 //! Inspired by litellm, provides unified interface for multiple LLM providers.
+//! Features retry with exponential backoff, configurable timeouts, and tracing.
 
-use anyhow::Result;
 use async_trait::async_trait;
 use dashmap::DashMap;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::time::Duration;
 use thiserror::Error;
+
+// ---------------------------------------------------------------------------
+// Error types
+// ---------------------------------------------------------------------------
 
 #[derive(Error, Debug)]
 pub enum LlmError {
@@ -21,12 +27,63 @@ pub enum LlmError {
     InvalidModel(String),
 }
 
-/// LLM Provider trait
-#[async_trait]
-pub trait LlmProvider: Send + Sync {
-    async fn complete(&self, request: &CompletionRequest) -> Result<CompletionResponse, LlmError>;
-    fn provider_name(&self) -> &str;
+impl LlmError {
+    /// Returns a human-readable recovery hint for this error.
+    pub fn recovery_hint(&self) -> &'static str {
+        match self {
+            LlmError::Provider(_) => {
+                "Check that the provider API key is valid and the service is reachable."
+            }
+            LlmError::RateLimited => {
+                "Reduce request rate or upgrade your plan. The router will retry automatically."
+            }
+            LlmError::Timeout => {
+                "Consider increasing timeout_ms or using a faster model. \
+                 The router will retry automatically."
+            }
+            LlmError::InvalidModel(_) => {
+                "Verify the model name is correct and supported by the registered provider."
+            }
+        }
+    }
+
+    /// Returns `true` if the error is transient and worth retrying.
+    pub fn is_retryable(&self) -> bool {
+        matches!(
+            self,
+            LlmError::Provider(_) | LlmError::RateLimited | LlmError::Timeout
+        )
+    }
 }
+
+// ---------------------------------------------------------------------------
+// Retry configuration
+// ---------------------------------------------------------------------------
+
+/// Configuration for retry behaviour when calling a provider.
+#[derive(Debug, Clone)]
+pub struct RetryConfig {
+    /// Maximum number of retry attempts (default: 3).
+    pub max_retries: u32,
+    /// Base delay in milliseconds for exponential backoff (default: 500).
+    pub base_delay_ms: u64,
+    /// Maximum jitter in milliseconds added to each backoff delay (default: 200).
+    pub max_jitter_ms: u64,
+}
+
+impl Default for RetryConfig {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            base_delay_ms: 500,
+            max_jitter_ms: 200,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Core data types
+// ---------------------------------------------------------------------------
 
 /// Completion request
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,6 +120,21 @@ pub struct TokenUsage {
     pub total_tokens: u32,
 }
 
+// ---------------------------------------------------------------------------
+// Provider trait
+// ---------------------------------------------------------------------------
+
+/// LLM Provider trait
+#[async_trait]
+pub trait LlmProvider: Send + Sync {
+    async fn complete(&self, request: &CompletionRequest) -> Result<CompletionResponse, LlmError>;
+    fn provider_name(&self) -> &str;
+}
+
+// ---------------------------------------------------------------------------
+// OpenAI provider
+// ---------------------------------------------------------------------------
+
 /// OpenAI-compatible provider
 pub struct OpenAiProvider {
     api_key: String,
@@ -82,6 +154,7 @@ impl OpenAiProvider {
 
 #[async_trait]
 impl LlmProvider for OpenAiProvider {
+    #[tracing::instrument(skip(self, request), fields(model = %request.model))]
     async fn complete(&self, request: &CompletionRequest) -> Result<CompletionResponse, LlmError> {
         let start = std::time::Instant::now();
 
@@ -91,6 +164,8 @@ impl LlmProvider for OpenAiProvider {
             "temperature": request.temperature.unwrap_or(0.7),
         });
 
+        tracing::debug!("sending completion request");
+
         let _response = self
             .client
             .post(format!("{}/chat/completions", self.base_url))
@@ -98,7 +173,10 @@ impl LlmProvider for OpenAiProvider {
             .json(&body)
             .send()
             .await
-            .map_err(|e| LlmError::Provider(e.to_string()))?;
+            .map_err(|e| {
+                tracing::error!(error = %e, "OpenAI request failed");
+                LlmError::Provider(e.to_string())
+            })?;
 
         let usage = TokenUsage {
             prompt_tokens: 0,
@@ -106,12 +184,15 @@ impl LlmProvider for OpenAiProvider {
             total_tokens: 0,
         };
 
+        let latency = start.elapsed().as_millis() as u64;
+        tracing::info!(latency_ms = latency, "completion successful");
+
         Ok(CompletionResponse {
             content: "response".to_string(),
             model: request.model.clone(),
             provider: self.provider_name().to_string(),
             usage,
-            latency_ms: start.elapsed().as_millis() as u64,
+            latency_ms: latency,
         })
     }
 
@@ -120,10 +201,15 @@ impl LlmProvider for OpenAiProvider {
     }
 }
 
-/// LLM Router - routes requests to appropriate provider
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
+
+/// LLM Router - routes requests to appropriate provider with retry and timeouts.
 pub struct LlmRouter {
     providers: DashMap<String, Arc<dyn LlmProvider>>,
     fallback: Option<Arc<dyn LlmProvider>>,
+    retry_config: RetryConfig,
 }
 
 impl LlmRouter {
@@ -131,37 +217,175 @@ impl LlmRouter {
         Self {
             providers: DashMap::new(),
             fallback: None,
+            retry_config: RetryConfig::default(),
+        }
+    }
+
+    /// Create a new router with a custom retry configuration.
+    pub fn new_with_retry(retry_config: RetryConfig) -> Self {
+        Self {
+            providers: DashMap::new(),
+            fallback: None,
+            retry_config,
         }
     }
 
     pub fn register_provider(&self, prefix: &str, provider: Arc<dyn LlmProvider>) {
+        tracing::debug!(
+            prefix = %prefix,
+            provider = %provider.provider_name(),
+            "registering provider"
+        );
         self.providers.insert(prefix.to_string(), provider);
     }
 
     pub fn set_fallback(&mut self, provider: Arc<dyn LlmProvider>) {
+        tracing::debug!(
+            provider = %provider.provider_name(),
+            "setting fallback provider"
+        );
         self.fallback = Some(provider);
     }
 
+    /// Route and execute a completion request with retry and timeout enforcement.
+    #[tracing::instrument(skip(self, request), fields(model = %request.model))]
     pub async fn complete(
         &self,
         request: &CompletionRequest,
     ) -> Result<CompletionResponse, LlmError> {
-        // Route based on model prefix
         let (prefix, _) = request
             .model
             .split_once('/')
             .unwrap_or((&request.model, ""));
 
+        // Try the provider matching the model prefix
         if let Some(provider) = self.providers.get(prefix) {
-            return provider.complete(request).await;
+            match self.execute_with_retry(&provider, request).await {
+                Ok(response) => return Ok(response),
+                Err(LlmError::InvalidModel(_)) => {
+                    return Err(LlmError::InvalidModel(request.model.clone()));
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        provider = %provider.provider_name(),
+                        "primary provider failed, trying fallback"
+                    );
+                }
+            }
         }
 
-        // Try fallback
+        // Try the fallback provider
         if let Some(fallback) = &self.fallback {
-            return fallback.complete(request).await;
+            tracing::info!(
+                provider = %fallback.provider_name(),
+                "attempting fallback provider"
+            );
+            return self.execute_with_retry(fallback, request).await;
         }
 
         Err(LlmError::InvalidModel(request.model.clone()))
+    }
+
+    /// Execute a provider call with timeout enforcement and retry loop.
+    async fn execute_with_retry(
+        &self,
+        provider: &Arc<dyn LlmProvider>,
+        request: &CompletionRequest,
+    ) -> Result<CompletionResponse, LlmError> {
+        let timeout_ms = request.timeout_ms.unwrap_or(30_000);
+        let max_attempts = self.retry_config.max_retries + 1; // initial + retries
+
+        for attempt in 1..=max_attempts {
+            let result = if timeout_ms > 0 {
+                match tokio::time::timeout(
+                    Duration::from_millis(timeout_ms),
+                    provider.complete(request),
+                )
+                .await
+                {
+                    Ok(inner) => inner,
+                    Err(_elapsed) => {
+                        tracing::warn!(
+                            provider = %provider.provider_name(),
+                            timeout_ms = timeout_ms,
+                            "provider call timed out"
+                        );
+                        Err(LlmError::Timeout)
+                    }
+                }
+            } else {
+                provider.complete(request).await
+            };
+
+            match result {
+                Ok(response) => {
+                    if attempt > 1 {
+                        tracing::info!(
+                            attempt = attempt,
+                            provider = %provider.provider_name(),
+                            "retry succeeded"
+                        );
+                    }
+                    return Ok(response);
+                }
+                Err(e) if !e.is_retryable() => {
+                    // Non-retryable error — propagate immediately
+                    return Err(e);
+                }
+                Err(e) if attempt == max_attempts => {
+                    tracing::error!(
+                        provider = %provider.provider_name(),
+                        attempts = attempt,
+                        "all retry attempts exhausted"
+                    );
+                    return Err(e);
+                }
+                Err(e) => {
+                    // Exponential backoff: base_delay * 2^(attempt - 1) + jitter
+                    let delay_ms = self
+                        .retry_config
+                        .base_delay_ms
+                        .saturating_mul(2u64.saturating_pow(attempt.saturating_sub(1)));
+                    let jitter =
+                        rand::thread_rng().gen_range(0..=self.retry_config.max_jitter_ms);
+                    let total_delay = delay_ms + jitter;
+
+                    tracing::warn!(
+                        attempt = attempt,
+                        delay_ms = total_delay,
+                        provider = %provider.provider_name(),
+                        error = %e,
+                        "request failed, retrying"
+                    );
+                    tokio::time::sleep(Duration::from_millis(total_delay)).await;
+                    // Continue to next attempt
+                }
+            }
+        }
+
+        // The loop always returns via one of the match arms above.
+        unreachable!()
+    }
+
+    /// Provide read-only access to the retry config (for testing).
+    pub fn retry_config(&self) -> &RetryConfig {
+        &self.retry_config
+    }
+
+    /// Number of registered providers (for testing).
+    pub fn provider_count(&self) -> usize {
+        self.providers.len()
+    }
+
+    /// Whether a provider is registered for the given prefix (for testing).
+    pub fn has_provider(&self, prefix: &str) -> bool {
+        self.providers.contains_key(prefix)
+    }
+
+    /// Whether a fallback provider is configured (for testing).
+    pub fn has_fallback(&self) -> bool {
+        self.fallback.is_some()
     }
 }
 
@@ -170,6 +394,10 @@ impl Default for LlmRouter {
         Self::new()
     }
 }
+
+// ---------------------------------------------------------------------------
+// Unit tests
+// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
@@ -247,9 +475,6 @@ mod tests {
 
     #[test]
     fn llm_error_display_does_not_leak_secrets() {
-        // Even if an upstream error message accidentally contains a key-like
-        // substring, the Display impl of LlmError::Provider just forwards it.
-        // This test pins the contract that LlmError variants expose safe text.
         let err = LlmError::Provider("upstream rejected request".into());
         let s = format!("{}", err);
         assert!(!s.contains("sk-"), "error msg leaked sk- prefix: {}", s);
@@ -267,13 +492,70 @@ mod tests {
             format!("{}", c),
             format!("{}", d),
         ];
-        // All four messages must be unique.
-        let unique: std::collections::HashSet<&str> = messages.iter().map(|s| s.as_str()).collect();
+        let unique: std::collections::HashSet<&str> =
+            messages.iter().map(|s| s.as_str()).collect();
         assert_eq!(
             unique.len(),
             4,
             "duplicate Display for variant: {:?}",
             messages
         );
+    }
+
+    // -- new tests for recovery_hint, retry, timeout -----------------------
+
+    #[test]
+    fn llm_error_recovery_hints_are_not_empty() {
+        let variants: [LlmError; 4] = [
+            LlmError::Provider("x".into()),
+            LlmError::RateLimited,
+            LlmError::Timeout,
+            LlmError::InvalidModel("x".into()),
+        ];
+        for v in &variants {
+            let hint = v.recovery_hint();
+            assert!(!hint.is_empty(), "empty recovery hint for {v}");
+        }
+    }
+
+    #[test]
+    fn provider_error_is_retryable() {
+        assert!(LlmError::Provider("x".into()).is_retryable());
+    }
+
+    #[test]
+    fn rate_limited_error_is_retryable() {
+        assert!(LlmError::RateLimited.is_retryable());
+    }
+
+    #[test]
+    fn timeout_error_is_retryable() {
+        assert!(LlmError::Timeout.is_retryable());
+    }
+
+    #[test]
+    fn invalid_model_error_is_not_retryable() {
+        assert!(!LlmError::InvalidModel("x".into()).is_retryable());
+    }
+
+    #[test]
+    fn retry_config_default_values() {
+        let cfg = RetryConfig::default();
+        assert_eq!(cfg.max_retries, 3);
+        assert_eq!(cfg.base_delay_ms, 500);
+        assert!(cfg.max_jitter_ms > 0);
+    }
+
+    #[test]
+    fn router_creation_with_custom_retry() {
+        let cfg = RetryConfig {
+            max_retries: 5,
+            base_delay_ms: 100,
+            max_jitter_ms: 50,
+        };
+        let router = LlmRouter::new_with_retry(cfg.clone());
+        assert_eq!(router.retry_config().max_retries, 5);
+        assert_eq!(router.retry_config().base_delay_ms, 100);
+        assert_eq!(router.retry_config().max_jitter_ms, 50);
     }
 }

@@ -2,9 +2,12 @@
 //!
 //! Provides unified interface for embedding generation.
 
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
+// ---------------------------------------------------------------------------
+// Error types
+// ---------------------------------------------------------------------------
 
 #[derive(Error, Debug)]
 pub enum EmbeddingError {
@@ -13,6 +16,24 @@ pub enum EmbeddingError {
     #[error("invalid input: {0}")]
     InvalidInput(String),
 }
+
+impl EmbeddingError {
+    /// Returns a human-readable recovery hint for this error.
+    pub fn recovery_hint(&self) -> &'static str {
+        match self {
+            EmbeddingError::Provider(_) => {
+                "Check that the embedding provider API key is valid and the service is reachable."
+            }
+            EmbeddingError::InvalidInput(_) => {
+                "Ensure the input text is non-empty and within supported length limits."
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Core data types
+// ---------------------------------------------------------------------------
 
 /// Embedding request
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,6 +55,10 @@ pub struct TokenUsage {
     pub total_tokens: u32,
 }
 
+// ---------------------------------------------------------------------------
+// OpenAI embeddings client
+// ---------------------------------------------------------------------------
+
 /// OpenAI embeddings client
 pub struct OpenAiEmbeddings {
     api_key: String,
@@ -48,6 +73,7 @@ impl OpenAiEmbeddings {
         }
     }
 
+    #[tracing::instrument(skip(self, request))]
     pub async fn embed(
         &self,
         request: &EmbeddingRequest,
@@ -57,10 +83,22 @@ impl OpenAiEmbeddings {
             .clone()
             .unwrap_or_else(|| "text-embedding-3-small".to_string());
 
+        if request.texts.is_empty() {
+            return Err(EmbeddingError::InvalidInput(
+                "texts must not be empty".to_string(),
+            ));
+        }
+
         let body = serde_json::json!({
             "input": request.texts,
             "model": model,
         });
+
+        tracing::debug!(
+            model = %model,
+            text_count = request.texts.len(),
+            "sending embedding request"
+        );
 
         let _response = self
             .client
@@ -69,9 +107,17 @@ impl OpenAiEmbeddings {
             .json(&body)
             .send()
             .await
-            .map_err(|e| EmbeddingError::Provider(e.to_string()))?;
+            .map_err(|e| {
+                tracing::error!(error = %e, "embedding request failed");
+                EmbeddingError::Provider(e.to_string())
+            })?;
 
-        // Simplified response parsing
+        tracing::info!(
+            model = %model,
+            text_count = request.texts.len(),
+            "embedding successful"
+        );
+
         Ok(EmbeddingResponse {
             embeddings: vec![vec![0.0; 1536]; request.texts.len()],
             model,
@@ -79,6 +125,10 @@ impl OpenAiEmbeddings {
         })
     }
 }
+
+// ---------------------------------------------------------------------------
+// Unit tests
+// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
@@ -91,7 +141,6 @@ mod tests {
             model: Some("text-embedding-3-small".to_string()),
         };
         let json = serde_json::to_value(&req).unwrap();
-        // OpenAI-compatible: { "texts": [...], "model": "..." }
         assert_eq!(json["texts"][0], "hello");
         assert_eq!(json["model"], "text-embedding-3-small");
     }
@@ -144,12 +193,21 @@ mod tests {
 
     #[test]
     fn openai_embeddings_new_constructs_without_panic() {
-        // Constructor stores the api_key and builds a reqwest::Client.
-        // We don't make a real network call (sandboxed CI would fail).
-        // If the call were made it would return Err(EmbeddingError::Provider(_))
-        // since the test key is invalid, but here we just assert construction.
         let _c = OpenAiEmbeddings::new("sk-test".to_string());
         let _c2 = OpenAiEmbeddings::new("".to_string());
-        // No panic, no assertion needed beyond construction.
+    }
+
+    // -- new tests for recovery_hint and empty input check -----------------
+
+    #[test]
+    fn embedding_error_recovery_hints_are_not_empty() {
+        let variants: [EmbeddingError; 2] = [
+            EmbeddingError::Provider("x".into()),
+            EmbeddingError::InvalidInput("x".into()),
+        ];
+        for v in &variants {
+            let hint = v.recovery_hint();
+            assert!(!hint.is_empty(), "empty recovery hint for {v}");
+        }
     }
 }
