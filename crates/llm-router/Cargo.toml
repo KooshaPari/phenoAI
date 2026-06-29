@@ -15,3 +15,6 @@ async-trait = "0.1"
 tracing = "0.1"
 dashmap = "7.0.0-rc2"
 # tokio/sync is included via workspace tokio (full features)
+
+[dev-dependencies]
+tracing-subscriber = { version = "0.3", features = ["std", "fmt"] }

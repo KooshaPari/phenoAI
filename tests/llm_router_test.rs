@@ -139,11 +139,12 @@ fn test_llm_error_display() {
     let err = LlmError::Provider("test error".to_string());
     assert_eq!(format!("{}", err), "provider error: test error");
 
-    let err = LlmError::RateLimited;
-    assert_eq!(format!("{}", err), "rate limited");
+    let err = LlmError::RateLimited { retry_after_ms: 2000 };
+    assert!(format!("{}", err).contains("rate limited"));
+    assert!(format!("{}", err).contains("2000"));
 
-    let err = LlmError::Timeout;
-    assert_eq!(format!("{}", err), "timeout");
+    let err = LlmError::Timeout { timeout_ms: 5000 };
+    assert!(format!("{}", err).contains("timeout after 5000ms"));
 
     let err = LlmError::InvalidModel("gpt-5".to_string());
     assert_eq!(format!("{}", err), "invalid model: gpt-5");
