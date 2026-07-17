@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = ["pyright>=1.1.390", "pytest"]
+
+[project]
+name = "phenotype-research"
+version = "0.1.0"
+description = "Phenotype research workflow orchestration (absorbed from phenoResearchEngine, deprecated 2026-06-20)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Claude Code", email = "claude@anthropic.com"}]
+classifiers = [
+    "Development Status :: 7 - Inactive",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "phenotype-py-utils @ git+https://github.com/KooshaPari/phenotype-py-utils.git@v0.1.0",
+]
+
+[project.urls]
+repository = "https://github.com/KooshaPari/phenoAI"
+absorbed_from = "https://github.com/KooshaPari/phenoResearchEngine"
