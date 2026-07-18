@@ -1,11 +1,11 @@
-// PhenoAI - AI/LLM Workspace
-//
-// Contains AI-related crates:
-// - llm-router: LLM routing — substrate::omniroute-adapter shim
-//                (the actual routing logic lives in KooshaPari/substrate;
-//                 phenoAI delegates to it via a Cargo git dep)
-// - mcp-server: MCP protocol server
-// - embedding: Embedding pipeline
+# PhenoAI - AI/LLM Workspace
+#
+# Contains AI-related crates:
+# - llm-router: LLM routing — substrate::omniroute-adapter shim
+#                (the actual routing logic lives in KooshaPari/substrate;
+#                 phenoAI delegates to it via a Cargo git dep)
+# - mcp-server: MCP protocol server
+# - embedding: Embedding pipeline
 [workspace]
 members = [
     "crates/llm-router",

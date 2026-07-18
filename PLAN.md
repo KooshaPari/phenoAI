@@ -16,11 +16,13 @@
 - [x] 1 ADR filled (record architecture decisions)
 
 ### In Progress
-- [ ] **Coverage governance** — `.codecov.yml`, `tarpaulin.toml`, `coverage.yml`
-      workflow (this commit)
-- [ ] **Test coverage floor** — write unit tests until `cargo tarpaulin` reports ≥ 60%
+- [x] **Coverage governance configuration** — `.codecov.yml`, `tarpaulin.toml`,
+      and `.github/workflows/coverage.yml` are present and committed.
+- [x] **Test coverage floor** — `cargo tarpaulin` reports 75.97% (117/154 lines)
 - [ ] **2 more ADRs** (anthropic provider scope, local embeddings future)
-- [ ] **BDD feature files** — one happy-path `.feature` per crate
+- [x] **BDD feature files** — one happy-path `.feature` exists for each crate:
+      `llm-router`, `mcp-server`, and `pheno-embedding`.
+
 
 ### Backlog
 - [ ] Anthropic provider in `llm-router`

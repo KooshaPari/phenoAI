@@ -3,7 +3,7 @@
 
 [default]
 # Test timeout in seconds (helps CI not hang)
-timeout = 120
+timeout = "120s"
 
 # Generate cobertura for codecov upload
 out = ["Xml", "Html"]

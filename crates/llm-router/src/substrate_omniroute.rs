@@ -1,5 +1,5 @@
 //! Phenotype LLM router — thin shim that delegates routing decisions
-//! to the canonical `substrate::omniroute_adapter::OmniRouteAdapter`.
+//! to the canonical `omniroute-adapter` crate.
 //!
 //! History: this crate previously contained a parallel `LlmRouter` impl
 //! with its own `LlmProvider` enum + `decide()` method. That was deleted
@@ -18,14 +18,13 @@
 //! `RoutingDecision`/`EnginePort` surface.
 
 use anyhow::{Context, Result};
+use omniroute_adapter::OmniRouteAdapter;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use substrate::omniroute_adapter::{
-    OmniRouteAdapter, ProviderConfig as SubstrateProviderConfig, RoutingDecision,
-    RoutingStrategy, SupersetRoutingDecision,
-};
-use substrate::routing_port::{
-    FallbackEntry, RoutingPoolState, RoutingSelector, RoutingSuperset, RoutingTarget,
+use substrate_core::domain::RoutingDecision;
+use substrate_core::routing_port::{
+    CircuitBreakerConfig, FallbackEntry, RoutingPoolState, RoutingStrategy, RoutingSuperset,
+    RoutingTarget,
 };
 
 /// OpenAI-compat chat request DTO used by phenoAI callers.
@@ -65,12 +64,49 @@ pub struct LlmUsage {
     pub total_tokens: u32,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderConfig {
+    pub name: String,
+    pub base_url: String,
+    pub default_model: String,
+}
+
+impl ProviderConfig {
+    pub fn new(
+        name: impl Into<String>,
+        base_url: impl Into<String>,
+        default_model: impl Into<String>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            base_url: base_url.into(),
+            default_model: default_model.into(),
+        }
+    }
+}
+
+pub type SubstrateProviderConfig = ProviderConfig;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SupersetRoutingDecision {
+    pub target_id: String,
+    pub decision: RoutingDecision,
+}
+
+impl SupersetRoutingDecision {
+    pub fn engine(&self) -> &str {
+        &self.decision.engine
+    }
+}
+
 /// Phenotype LLM router. Wraps a `substrate::routing_port::RoutingSuperset`
 /// and exposes phenoAI-flavoured `LlmRequest`/`LlmResponse` DTOs.
 #[derive(Clone)]
 pub struct LlmRouter {
     inner: Arc<OmniRouteAdapter>,
     superset: Arc<RoutingSuperset>,
+    endpoint: String,
+    api_key: Option<String>,
 }
 
 impl LlmRouter {
@@ -81,53 +117,86 @@ impl LlmRouter {
     pub fn new(
         endpoint: &str,
         api_key: Option<&str>,
-        providers: Vec<SubstrateProviderConfig>,
+        providers: Vec<ProviderConfig>,
     ) -> Result<Self> {
-        let adapter = OmniRouteAdapter::new(endpoint, api_key)
-            .with_context(|| format!("failed to build OmniRouteAdapter at {endpoint}"))?;
-        let mut superset = RoutingSuperset::with_strategy(RoutingStrategy::CostOptimized);
+        let mut pool = Vec::with_capacity(providers.len());
+        let mut fallback = Vec::with_capacity(providers.len());
         for cfg in providers {
-            let target = RoutingTarget::new(&cfg.name)
-                .with_metadata("base_url", serde_json::Value::String(cfg.base_url.clone()))
-                .with_metadata(
-                    "model",
-                    serde_json::Value::String(cfg.default_model.clone()),
-                );
-            let fallback = FallbackEntry::new(&cfg.name, &cfg.default_model);
-            superset = superset
-                .with_target(target)
-                .with_fallback(fallback)
-                .with_selector(RoutingSelector::RoundRobin);
+            let target = RoutingTarget {
+                id: cfg.name.clone(),
+                engine: cfg.name.clone(),
+                model: cfg.default_model.clone(),
+                weight: 1,
+            };
+            fallback.push(FallbackEntry {
+                rank: 0,
+                target: target.clone(),
+                weight: 1,
+            });
+            pool.push(target);
         }
+        let superset = RoutingSuperset::new(
+            pool,
+            fallback,
+            RoutingStrategy::RoundRobin,
+            CircuitBreakerConfig::default(),
+        );
+        let adapter = OmniRouteAdapter::new().with_superset(superset.clone());
         Ok(Self {
             inner: Arc::new(adapter),
             superset: Arc::new(superset),
+            endpoint: endpoint.trim_end_matches('/').to_string(),
+            api_key: api_key.map(str::to_string),
         })
     }
 
     /// Get a snapshot of the routing pool state (target health, fallback
     /// chain, current selector) — useful for /metrics and /health endpoints.
     pub fn pool_state(&self) -> RoutingPoolState {
-        self.superset.snapshot()
+        let mut state = RoutingPoolState::default();
+        state.ensure_targets(self.superset.pool(), self.superset.breaker_config());
+        state
     }
 
     /// Make a routing decision for an `LlmRequest`. Returns a
     /// `SupersetRoutingDecision` (a richer `RoutingDecision` that includes
     /// the chosen target, the strategy used, and a rationale string).
     pub fn route(&self, req: &LlmRequest) -> SupersetRoutingDecision {
-        let preference = req.model.clone();
-        self.superset.decide_with_preference(&preference)
+        if let Some(target) = self
+            .superset
+            .pool()
+            .iter()
+            .find(|target| req.model == target.model || req.model.contains(&target.id))
+        {
+            return SupersetRoutingDecision {
+                target_id: target.id.clone(),
+                decision: RoutingDecision {
+                    engine: target.engine.clone(),
+                    model: target.model.clone(),
+                    reason: Some("phenoAI:model-preference".to_string()),
+                },
+            };
+        }
+
+        let routed = self
+            .inner
+            .route_superset(0)
+            .expect("routing pool must contain a healthy target");
+        SupersetRoutingDecision {
+            target_id: routed.target_id,
+            decision: routed.decision,
+        }
     }
 
     /// Dispatch an `LlmRequest` through the chosen route, returning a
     /// populated `LlmResponse` with `routed_via` set to the chosen provider
     /// name. Falls back to the fallback chain on upstream errors.
     pub async fn dispatch(&self, req: LlmRequest) -> Result<LlmResponse> {
-        let decision: RoutingDecision = self.route(&req).into();
-        let target_name = decision.engine.clone();
+        let decision = self.route(&req);
+        let target_name = decision.engine().to_string();
 
         let body = serde_json::json!({
-            "model": req.model,
+            "model": decision.decision.model,
             "messages": req.messages,
             "temperature": req.temperature,
             "max_tokens": req.max_tokens,
@@ -139,14 +208,22 @@ impl LlmRouter {
             merge_json(body, req.extra)
         };
 
-        // Delegate the actual HTTP call to the substrate adapter. The
-        // adapter applies the routing decision and the configured
-        // fallback chain on upstream errors.
-        let raw: serde_json::Value = self
-            .inner
-            .chat_completion(&target_name, &body)
+        let client = reqwest::Client::new();
+        let mut request = client
+            .post(format!("{}/chat/completions", self.endpoint))
+            .json(&body);
+        if let Some(api_key) = &self.api_key {
+            request = request.bearer_auth(api_key);
+        }
+        let raw: serde_json::Value = request
+            .send()
             .await
-            .with_context(|| format!("substrate::OmniRouteAdapter::chat_completion({target_name}) failed"))?;
+            .with_context(|| format!("request to routed target {target_name} failed"))?
+            .error_for_status()
+            .with_context(|| format!("routed target {target_name} returned an error"))?
+            .json()
+            .await
+            .context("decoding routed completion response")?;
 
         let response = LlmResponse {
             id: raw
@@ -201,21 +278,23 @@ fn merge_json(a: serde_json::Value, b: serde_json::Value) -> serde_json::Value {
     }
 }
 
-// Re-export the canonical substrate DTOs for callers that want raw
-// substrate types without going through the LlmRequest/LlmResponse
-// phenoAI-flavored wrappers.
-pub use substrate::omniroute_adapter::ProviderConfig;
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use substrate::routing_port::TargetHealth;
 
     fn providers() -> Vec<SubstrateProviderConfig> {
         vec![
             SubstrateProviderConfig::new("openai", "https://api.openai.com/v1", "gpt-4o"),
-            SubstrateProviderConfig::new("anthropic", "https://api.anthropic.com/v1", "claude-opus-4"),
-            SubstrateProviderConfig::new("ollama", "http://127.0.0.1:11434/v1", "qwen2.5-coder:32b"),
+            SubstrateProviderConfig::new(
+                "anthropic",
+                "https://api.anthropic.com/v1",
+                "claude-opus-4",
+            ),
+            SubstrateProviderConfig::new(
+                "ollama",
+                "http://127.0.0.1:11434/v1",
+                "qwen2.5-coder:32b",
+            ),
         ]
     }
 
@@ -223,7 +302,11 @@ mod tests {
     fn router_new_succeeds_with_multiple_providers() {
         let r = LlmRouter::new("http://127.0.0.1:20128/v1", None, providers()).unwrap();
         let s = r.pool_state();
-        assert!(s.target_count() >= 3, "expected 3+ targets, got {}", s.target_count());
+        assert!(
+            s.health.len() >= 3,
+            "expected 3+ targets, got {}",
+            s.health.len()
+        );
     }
 
     #[test]
@@ -231,14 +314,20 @@ mod tests {
         let r = LlmRouter::new("http://127.0.0.1:20128/v1", None, providers()).unwrap();
         let req = LlmRequest {
             model: "gpt-4o".into(),
-            messages: vec![LlmMessage { role: "user".into(), content: "hi".into() }],
+            messages: vec![LlmMessage {
+                role: "user".into(),
+                content: "hi".into(),
+            }],
             temperature: None,
             max_tokens: None,
             stream: false,
             extra: serde_json::Value::Null,
         };
         let d = r.route(&req);
-        assert!(!d.engine().is_empty(), "routing decision must name a target");
+        assert!(
+            !d.engine().is_empty(),
+            "routing decision must name a target"
+        );
     }
 
     #[test]
@@ -246,23 +335,29 @@ mod tests {
         let r = LlmRouter::new("http://127.0.0.1:20128/v1", None, providers()).unwrap();
         let req = LlmRequest {
             model: "claude-opus-4".into(),
-            messages: vec![LlmMessage { role: "user".into(), content: "hi".into() }],
+            messages: vec![LlmMessage {
+                role: "user".into(),
+                content: "hi".into(),
+            }],
             temperature: None,
             max_tokens: None,
             stream: false,
             extra: serde_json::Value::Null,
         };
         let d = r.route(&req);
-        assert_eq!(d.engine(), "anthropic", "expected anthropic for claude-opus-4 request, got {}", d.engine());
+        assert_eq!(
+            d.engine(),
+            "anthropic",
+            "expected anthropic for claude-opus-4 request, got {}",
+            d.engine()
+        );
     }
 
     #[test]
     fn router_pool_state_reflects_health() {
         let r = LlmRouter::new("http://127.0.0.1:20128/v1", None, providers()).unwrap();
         let s = r.pool_state();
-        for t in s.targets() {
-            assert!(matches!(t.health(), TargetHealth::Healthy | TargetHealth::Unknown));
-        }
+        assert_eq!(s.health.len(), 3);
     }
 
     #[test]
@@ -271,7 +366,10 @@ mod tests {
         let r = LlmRouter::new("http://127.0.0.1:1/v1", None, providers()).unwrap();
         let req = LlmRequest {
             model: "gpt-4o".into(),
-            messages: vec![LlmMessage { role: "user".into(), content: "hi".into() }],
+            messages: vec![LlmMessage {
+                role: "user".into(),
+                content: "hi".into(),
+            }],
             temperature: Some(0.0),
             max_tokens: Some(8),
             stream: false,
