@@ -1,9 +1,6 @@
 name: CodeQL (Rust)
 
 on:
-  workflow_dispatch:
-permissions:
-  contents: read
   push:
     branches: [main]
   pull_request:
@@ -11,6 +8,10 @@ permissions:
   schedule:
     - cron: '17 4 * * 2'
   workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+  security-events: write
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
