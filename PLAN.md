@@ -19,7 +19,7 @@
 - [x] **Coverage governance configuration** — `.codecov.yml`, `tarpaulin.toml`,
       and `.github/workflows/coverage.yml` are present and committed.
 - [x] **Test coverage floor** — `cargo tarpaulin` reports 75.97% (117/154 lines)
-- [ ] **2 more ADRs** (anthropic provider scope, local embeddings future)
+- [x] **2 more ADRs** (anthropic provider scope, local embeddings future)
 - [x] **BDD feature files** — one happy-path `.feature` exists for each crate:
       `llm-router`, `mcp-server`, and `pheno-embedding`.
 
@@ -47,8 +47,8 @@
 | FR.md | ✅ existing | — |
 | AGENTS.md | ✅ existing | — |
 | ADR template | ✅ 0001 | — |
-| 2 more ADRs | ⏳ pending | — |
+| 2 more ADRs | ✅ 0003 and 0004 | — |
 | Codecov config | ✅ this commit | — |
 | Tarpaulin config | ✅ this commit | — |
 | Coverage workflow | ✅ this commit | — |
-| BDD .feature files | ⏳ pending | — |
+| BDD .feature files | ✅ one per crate | — |

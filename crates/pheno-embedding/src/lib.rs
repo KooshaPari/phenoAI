@@ -2,6 +2,8 @@
 //!
 //! Provides unified interface for embedding generation.
 
+pub mod lance_store;
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
