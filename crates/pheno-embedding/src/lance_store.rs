@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result, anyhow};
 use arrow_array::{
-    Array, FixedSizeListArray, Float32Array, RecordBatch, RecordBatchIterator, StringArray,
+    Array, FixedSizeListArray, Float32Array, RecordBatch, StringArray,
     types::Float32Type,
 };
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
@@ -264,7 +264,7 @@ impl LanceStore {
             }
         }
 
-        let schema: SchemaRef = Arc::new(table_schema(dim));
+        let schema: SchemaRef = table_schema(dim);
         let table = self
             .db
             .create_empty_table(&self.table_name, schema)
@@ -283,8 +283,8 @@ impl LanceStore {
 // ---------------------------------------------------------------------------
 
 /// Build the Arrow schema for the `vectors` table.
-fn table_schema(dim: usize) -> Schema {
-    Schema::new(vec![
+fn table_schema(dim: usize) -> SchemaRef {
+    Arc::new(Schema::new(vec![
         Field::new("id", DataType::Utf8, false),
         Field::new(
             "vector",
@@ -295,7 +295,7 @@ fn table_schema(dim: usize) -> Schema {
             false,
         ),
         Field::new("model_id", DataType::Utf8, false),
-    ])
+    ]))
 }
 
 /// Build a one-row `RecordBatch` from parallel slices of ids, model_ids,
@@ -336,15 +336,8 @@ fn build_record_batch(
 
 /// Append a single `RecordBatch` to `table` via the `AddDataBuilder`.
 async fn append_batch(table: &lancedb::Table, batch: RecordBatch) -> Result<()> {
-    // `lancedb::Table::add` requires the data to be a `Scannable`. Wrap
-    // the single batch in a `RecordBatchIterator` so it satisfies the
-    // trait without us having to hand-roll a reader.
-    let schema = batch.schema();
-    let batches = vec![Ok(batch)];
-    let iter = RecordBatchIterator::new(batches.into_iter(), schema);
-
     table
-        .add(iter)
+        .add(vec![batch])
         .execute()
         .await
         .map_err(|e| anyhow!(e).context("appending record batch to vectors table"))?;
@@ -412,17 +405,17 @@ mod tests {
         assert!(path.exists(), "LanceStore::new should create the dataset dir");
         assert!(store.dim().is_none(), "dim is unknown before any upsert");
 
-        store.upsert("a", "m1", &vec_for(0)).await.unwrap();
+        store.upsert("a", "m1", &vec_for(0.0)).await.unwrap();
         assert_eq!(store.dim(), Some(4));
 
-        store.upsert("b", "m1", &vec_for(1)).await.unwrap();
-        store.upsert("c", "m1", &vec_for(2)).await.unwrap();
+        store.upsert("b", "m1", &vec_for(1.0)).await.unwrap();
+        store.upsert("c", "m1", &vec_for(2.0)).await.unwrap();
 
         // Reopen and confirm the data is durable.
         drop(store);
         let store2 = LanceStore::new(&path).await.unwrap();
         assert_eq!(store2.dim(), Some(4), "dim should be recovered from disk");
-        let hits = store2.ann(&vec_for(0), 3).await.unwrap();
+        let hits = store2.ann(&vec_for(0.0), 3).await.unwrap();
         assert_eq!(hits.len(), 3);
         assert_eq!(hits[0], "a", "exact match should rank first under cosine");
     }
@@ -432,18 +425,19 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let store = LanceStore::new(dir.path()).await.unwrap();
 
-        store.upsert("a", "m1", &vec_for(0)).await.unwrap();
-        store.upsert("a", "m2", &vec_for(2)).await.unwrap();
+        store.upsert("a", "m1", &vec_for(0.0)).await.unwrap();
+        store.upsert("b", "m1", &vec_for(0.0)).await.unwrap();
+        store.upsert("a", "m2", &vec_for(2.0)).await.unwrap();
 
         // `a` should now match the second vector, not the first.
-        let hits = store.ann(&vec_for(2), 1).await.unwrap();
+        let hits = store.ann(&vec_for(2.0), 1).await.unwrap();
         assert_eq!(hits, vec!["a".to_string()]);
 
-        let hits_first = store.ann(&vec_for(0), 1).await.unwrap();
-        assert_ne!(
+        let hits_first = store.ann(&vec_for(0.0), 1).await.unwrap();
+        assert_eq!(
             hits_first,
-            vec!["a".to_string()],
-            "after replace, `a` should no longer be the nearest to vec_for(0)"
+            vec!["b".to_string()],
+            "after replace, `b` should be the nearest to vec_for(0.0)"
         );
     }
 
@@ -452,7 +446,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let store = LanceStore::new(dir.path()).await.unwrap();
 
-        store.upsert("a", "m1", &vec_for(0)).await.unwrap(); // dim 4
+        store.upsert("a", "m1", &vec_for(0.0)).await.unwrap(); // dim 4
         let err = store.upsert("b", "m1", &[0.0, 0.0]).await.unwrap_err();
         let msg = format!("{err}");
         assert!(
@@ -465,7 +459,7 @@ mod tests {
     async fn ann_rejects_wrong_dim_query() {
         let dir = TempDir::new().unwrap();
         let store = LanceStore::new(dir.path()).await.unwrap();
-        store.upsert("a", "m1", &vec_for(0)).await.unwrap();
+        store.upsert("a", "m1", &vec_for(0.0)).await.unwrap();
 
         let err = store.ann(&[0.0, 0.0], 1).await.unwrap_err();
         let msg = format!("{err}");
@@ -479,9 +473,9 @@ mod tests {
     async fn ann_with_k_zero_returns_empty() {
         let dir = TempDir::new().unwrap();
         let store = LanceStore::new(dir.path()).await.unwrap();
-        store.upsert("a", "m1", &vec_for(0)).await.unwrap();
+        store.upsert("a", "m1", &vec_for(0.0)).await.unwrap();
 
-        let hits = store.ann(&vec_for(0), 0).await.unwrap();
+        let hits = store.ann(&vec_for(0.0), 0).await.unwrap();
         assert!(hits.is_empty());
     }
 
