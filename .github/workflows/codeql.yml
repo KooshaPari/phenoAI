@@ -16,7 +16,7 @@ jobs:
     permissions:
       actions: read
       contents: read
-      # Required for uploading CodeQL SARIF results from the analysis job.
+      # actions/contents read support workflow metadata and checkout; SARIF upload needs write.
       security-events: write
     strategy:
       fail-fast: false
