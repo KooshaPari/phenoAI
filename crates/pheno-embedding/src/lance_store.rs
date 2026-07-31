@@ -16,8 +16,8 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result, anyhow};
 use arrow_array::{
-    Array, FixedSizeListArray, Float32Array, RecordBatch, StringArray,
-    types::Float32Type,
+    Array, FixedSizeListArray, Float32Array, RecordBatch, RecordBatchIterator, RecordBatchReader,
+    StringArray,
 };
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use futures::TryStreamExt;
@@ -53,7 +53,10 @@ impl std::fmt::Debug for LanceStore {
         f.debug_struct("LanceStore")
             .field("table_name", &self.table_name)
             .field("dim", &*self.dim.lock().expect("dim mutex poisoned"))
-            .field("table_open", &self.table.lock().expect("table mutex poisoned").is_some())
+            .field(
+                "table_open",
+                &self.table.lock().expect("table mutex poisoned").is_some(),
+            )
             .finish()
     }
 }
@@ -94,7 +97,7 @@ impl LanceStore {
             Err(lancedb::Error::TableNotFound { .. }) => (None, None),
             Err(e) => {
                 return Err(anyhow!(e))
-                    .with_context(|| format!("opening existing table {table_name:?}"))
+                    .with_context(|| format!("opening existing table {table_name:?}"));
             }
         };
 
@@ -190,7 +193,7 @@ impl LanceStore {
                 None => {
                     return Err(anyhow!(
                         "cannot run ann() before the first upsert: vector dimension unknown"
-                    ))
+                    ));
                 }
             }
         };
@@ -329,15 +332,27 @@ fn build_record_batch(
 
     RecordBatch::try_new(
         schema.clone(),
-        vec![Arc::new(id_array), Arc::new(vector_array), Arc::new(model_array)],
+        vec![
+            Arc::new(id_array),
+            Arc::new(vector_array),
+            Arc::new(model_array),
+        ],
     )
     .map_err(|e| anyhow!(e).context("building RecordBatch"))
 }
 
 /// Append a single `RecordBatch` to `table` via the `AddDataBuilder`.
 async fn append_batch(table: &lancedb::Table, batch: RecordBatch) -> Result<()> {
+    // `lancedb::Table::add` requires a `Scannable`. In LanceDB 0.31 the
+    // supported Arrow streaming adapter is a boxed `RecordBatchReader`, not
+    // the concrete `RecordBatchIterator` itself.
+    let schema = batch.schema();
+    let batches = vec![Ok(batch)];
+    let iter = RecordBatchIterator::new(batches.into_iter(), schema);
+    let reader: Box<dyn RecordBatchReader + Send> = Box::new(iter);
+
     table
-        .add(vec![batch])
+        .add(reader)
         .execute()
         .await
         .map_err(|e| anyhow!(e).context("appending record batch to vectors table"))?;
@@ -402,7 +417,10 @@ mod tests {
         let path = dir.path().join("lance-data");
 
         let store = LanceStore::new(&path).await.unwrap();
-        assert!(path.exists(), "LanceStore::new should create the dataset dir");
+        assert!(
+            path.exists(),
+            "LanceStore::new should create the dataset dir"
+        );
         assert!(store.dim().is_none(), "dim is unknown before any upsert");
 
         store.upsert("a", "m1", &vec_for(0.0)).await.unwrap();
@@ -418,6 +436,20 @@ mod tests {
         let hits = store2.ann(&vec_for(0.0), 3).await.unwrap();
         assert_eq!(hits.len(), 3);
         assert_eq!(hits[0], "a", "exact match should rank first under cosine");
+    }
+
+    #[tokio::test]
+    async fn append_batch_persists_a_single_record_batch() {
+        let dir = TempDir::new().unwrap();
+        let store = LanceStore::new(dir.path()).await.unwrap();
+        let table = store.ensure_table(4).await.unwrap();
+        let schema = table_schema(4);
+        let vector = vec_for(0);
+        let batch = build_record_batch(&schema, &["a"], &["m1"], &[&vector]).unwrap();
+
+        append_batch(&table, batch).await.unwrap();
+
+        assert_eq!(table.count_rows(None).await.unwrap(), 1);
     }
 
     #[tokio::test]
