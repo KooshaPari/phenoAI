@@ -57,7 +57,7 @@ jobs:
           fetch-depth: 50
       - name: Conventional commit check
         if: hashFiles('.commitlintrc.json') != ''
-        uses: wagoid/commitlint-github-action@5a18711fb4551c356c12597d399a82599b8e2a39 # v5
+        uses: wagoid/commitlint-github-action@9763196e10f27aef304c9b8b660d31d97fce0f99 # v5
         with:
           configFile: .commitlintrc.json
       - name: Skip notice
