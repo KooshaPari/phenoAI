@@ -444,7 +444,7 @@ mod tests {
         let store = LanceStore::new(dir.path()).await.unwrap();
         let table = store.ensure_table(4).await.unwrap();
         let schema: SchemaRef = Arc::new(table_schema(4));
-        let vector = vec_for(0);
+        let vector = vec_for(0.0);
         let batch = build_record_batch(&schema, &["a"], &["m1"], &[&vector]).unwrap();
 
         append_batch(&table, batch).await.unwrap();
