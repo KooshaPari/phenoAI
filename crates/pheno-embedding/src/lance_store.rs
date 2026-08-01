@@ -458,6 +458,7 @@ mod tests {
         let store = LanceStore::new(dir.path()).await.unwrap();
 
         store.upsert("a", "m1", &vec_for(0.0)).await.unwrap();
+        store.upsert("b", "m1", &vec_for(0.0)).await.unwrap();
         store.upsert("a", "m2", &vec_for(2.0)).await.unwrap();
 
         // `a` should now match the second vector, not the first.
@@ -465,10 +466,10 @@ mod tests {
         assert_eq!(hits, vec!["a".to_string()]);
 
         let hits_first = store.ann(&vec_for(0.0), 1).await.unwrap();
-        assert_ne!(
+        assert_eq!(
             hits_first,
-            vec!["a".to_string()],
-            "after replace, `a` should no longer be the nearest to vec_for(0.0)"
+            vec!["b".to_string()],
+            "after replace, `b` should be the nearest to vec_for(0.0)"
         );
     }
 
