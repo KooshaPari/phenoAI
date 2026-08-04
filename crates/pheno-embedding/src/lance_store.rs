@@ -165,7 +165,7 @@ impl LanceStore {
             .with_context(|| format!("deleting existing row with id {id:?}"))?;
 
         // Build a one-row RecordBatch and append it.
-        let schema: SchemaRef = Arc::new(table_schema(dim));
+        let schema: SchemaRef = table_schema(dim);
         let batch = build_record_batch(&schema, &[id.as_str()], &[model_id.as_str()], &[vector])?;
         append_batch(&table, batch).await?;
 
@@ -443,7 +443,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let store = LanceStore::new(dir.path()).await.unwrap();
         let table = store.ensure_table(4).await.unwrap();
-        let schema: SchemaRef = Arc::new(table_schema(4));
+        let schema: SchemaRef = table_schema(4);
         let vector = vec_for(0.0);
         let batch = build_record_batch(&schema, &["a"], &["m1"], &[&vector]).unwrap();
 
