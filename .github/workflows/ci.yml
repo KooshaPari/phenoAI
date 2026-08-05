@@ -197,8 +197,49 @@ jobs:
 
   lint:
     name: ci / lint
+    needs: detect
+    if: needs.detect.outputs.has_ci_lint == 'true'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run lint only if configured
+        run: |
+          if [ -f "trunk.yaml" ] && [ -d ".trunk" ]; then
+            echo "Trunk configured — running"
+          else
+            echo "Trunk not configured — skipping"
+            exit 0
+          fi
+      - uses: trunk-io/trunk-action@04ba50e7658c81db7356da96657e6e77f220bfa3
+        if: hashFiles('trunk.yaml', '.trunk/trunk.yaml') != ''
+
+  trunk-check:
+    name: Trunk Check
+    needs: detect
+    if: needs.detect.outputs.has_trunk == 'true'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run trunk only if configured
+        run: |
+          if [ -f "trunk.yaml" ] && [ -d ".trunk" ]; then
+            echo "Trunk configured — running"
+          else
+            echo "Trunk not configured (no trunk.yaml + .trunk/) — skipping"
+            exit 0
+          fi
+      - uses: trunk-io/trunk-action@04ba50e7658c81db7356da96657e6e77f220bfa3
+        if: hashFiles('trunk.yaml', '.trunk/trunk.yaml') != ''
+
+  # ===========================================================================
+  # STAGE 5: Aggregation gate for branch protection
+  # ===========================================================================
+  ci:
+    name: CI
     if: always()
-    needs: [detect, rust, cargo-deny, python, go, typescript, security, dep-review]
+    needs: [detect, rust, cargo-deny, python, go, typescript, security, dep-review, lint, trunk-check, test]
     runs-on: ubuntu-latest
     steps:
       - name: Aggregate lint gate
@@ -211,7 +252,10 @@ jobs:
             "go:${{ needs.go.result }}" \
             "typescript:${{ needs.typescript.result }}" \
             "security:${{ needs.security.result }}" \
-            "dep-review:${{ needs.dependency-review.result }}" \
+            "dep-review:${{ needs.dep-review.result }}" \
+            "lint:${{ needs.lint.result }}" \
+            "trunk:${{ needs.trunk-check.result }}" \
+            "test:${{ needs.test.result }}" \
             ; do
             name="${pair%%:*}"
             result="${pair#*:}"
@@ -231,6 +275,15 @@ jobs:
           fi
           echo ""
           echo "✅ All lint checks passed (or were skipped)"
+          echo ""
+          echo "Per-language results (advisory, non-blocking):"
+          echo "  Rust:        ${{ needs.rust.result }}"
+          echo "  Python:      ${{ needs.python.result }}"
+          echo "  Go:          ${{ needs.go.result }}"
+          echo "  TS/JS:       ${{ needs.typescript.result }}"
+          echo "  Security:    ${{ needs.security.result }}"
+          echo "  Dep review:  ${{ needs.dependency-review.result }}"
+          echo "  Trunk:       ${{ needs.trunk-check.result }}"
 
   test:
     name: ci / test
