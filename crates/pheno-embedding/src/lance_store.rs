@@ -16,8 +16,8 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result, anyhow};
 use arrow_array::{
-    Array, FixedSizeListArray, Float32Array, RecordBatch, StringArray,
-    types::Float32Type,
+    Array, FixedSizeListArray, Float32Array, RecordBatch, RecordBatchIterator, RecordBatchReader,
+    StringArray,
 };
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use futures::TryStreamExt;
@@ -343,8 +343,16 @@ fn build_record_batch(
 
 /// Append a single `RecordBatch` to `table` via the `AddDataBuilder`.
 async fn append_batch(table: &lancedb::Table, batch: RecordBatch) -> Result<()> {
+    // `lancedb::Table::add` requires a `Scannable`. In LanceDB 0.31 the
+    // supported Arrow streaming adapter is a boxed `RecordBatchReader`, not
+    // the concrete `RecordBatchIterator` itself.
+    let schema = batch.schema();
+    let batches = vec![Ok(batch)];
+    let iter = RecordBatchIterator::new(batches.into_iter(), schema);
+    let reader: Box<dyn RecordBatchReader + Send> = Box::new(iter);
+
     table
-        .add(vec![batch])
+        .add(reader)
         .execute()
         .await
         .map_err(|e| anyhow!(e).context("appending record batch to vectors table"))?;
@@ -435,8 +443,13 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let store = LanceStore::new(dir.path()).await.unwrap();
         let table = store.ensure_table(4).await.unwrap();
+<<<<<<< HEAD
         let schema: SchemaRef = table_schema(4);
         let vector = vec_for(0.0);
+=======
+        let schema = table_schema(4);
+        let vector = vec_for(0);
+>>>>>>> 7ff07df (fix(embedding): adapt LanceDB batch reader)
         let batch = build_record_batch(&schema, &["a"], &["m1"], &[&vector]).unwrap();
 
         append_batch(&table, batch).await.unwrap();
