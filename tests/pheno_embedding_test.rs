@@ -27,10 +27,7 @@ fn test_embedding_request_default_model() {
 #[test]
 fn test_embedding_response_creation() {
     let response = EmbeddingResponse {
-        embeddings: vec![
-            vec![0.1, 0.2, 0.3],
-            vec![0.4, 0.5, 0.6],
-        ],
+        embeddings: vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]],
         model: "text-embedding-3-small".to_string(),
         usage: TokenUsage { total_tokens: 100 },
     };
@@ -60,8 +57,7 @@ fn test_embedding_request_serialization() {
     assert!(json.contains("Second"));
     assert!(json.contains("embed-model"));
 
-    let deserialized: EmbeddingRequest =
-        serde_json::from_str(&json).expect("Should deserialize");
+    let deserialized: EmbeddingRequest = serde_json::from_str(&json).expect("Should deserialize");
     assert_eq!(deserialized.texts.len(), 2);
 }
 
@@ -77,8 +73,7 @@ fn test_embedding_response_serialization() {
     assert!(json.contains("test-model"));
     assert!(json.contains("embeddings"));
 
-    let deserialized: EmbeddingResponse =
-        serde_json::from_str(&json).expect("Should deserialize");
+    let deserialized: EmbeddingResponse = serde_json::from_str(&json).expect("Should deserialize");
     assert_eq!(deserialized.model, "test-model");
     assert_eq!(deserialized.usage.total_tokens, 50);
 }
