@@ -14,15 +14,15 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use arrow_array::{
     Array, FixedSizeListArray, Float32Array, RecordBatch, RecordBatchIterator, RecordBatchReader,
     StringArray,
 };
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use futures::TryStreamExt;
-use lancedb::DistanceType;
 use lancedb::query::{ExecutableQuery, QueryBase, Select};
+use lancedb::DistanceType;
 
 /// Default chunk size used when materialising the result of an `ann`
 /// query into a single `RecordBatch` for id extraction.
@@ -165,7 +165,7 @@ impl LanceStore {
             .with_context(|| format!("deleting existing row with id {id:?}"))?;
 
         // Build a one-row RecordBatch and append it.
-        let schema: SchemaRef = Arc::new(table_schema(dim));
+        let schema: SchemaRef = table_schema(dim);
         let batch = build_record_batch(&schema, &[id.as_str()], &[model_id.as_str()], &[vector])?;
         append_batch(&table, batch).await?;
 
