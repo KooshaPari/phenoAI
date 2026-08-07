@@ -16,8 +16,13 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result, anyhow};
 use arrow_array::{
+<<<<<<< HEAD
     Array, FixedSizeListArray, Float32Array, RecordBatch, RecordBatchIterator, RecordBatchReader,
     StringArray,
+=======
+    Array, FixedSizeListArray, Float32Array, RecordBatch, StringArray,
+    types::Float32Type,
+>>>>>>> 98fd68c (fix(embedding): repair lance store tests)
 };
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use futures::TryStreamExt;
@@ -343,6 +348,7 @@ fn build_record_batch(
 
 /// Append a single `RecordBatch` to `table` via the `AddDataBuilder`.
 async fn append_batch(table: &lancedb::Table, batch: RecordBatch) -> Result<()> {
+<<<<<<< HEAD
     // `lancedb::Table::add` requires a `Scannable`. In LanceDB 0.31 the
     // supported Arrow streaming adapter is a boxed `RecordBatchReader`, not
     // the concrete `RecordBatchIterator` itself.
@@ -353,6 +359,10 @@ async fn append_batch(table: &lancedb::Table, batch: RecordBatch) -> Result<()> 
 
     table
         .add(reader)
+=======
+    table
+        .add(vec![batch])
+>>>>>>> 98fd68c (fix(embedding): repair lance store tests)
         .execute()
         .await
         .map_err(|e| anyhow!(e).context("appending record batch to vectors table"))?;
