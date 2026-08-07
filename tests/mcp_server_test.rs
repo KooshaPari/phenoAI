@@ -29,9 +29,7 @@ async fn test_register_tool() {
     };
 
     server
-        .register_tool(tool, |args| {
-            Ok(serde_json::json!({"result": "success"}))
-        })
+        .register_tool(tool, |args| Ok(serde_json::json!({"result": "success"})))
         .await;
 
     let tools = server.list_tools().await;
@@ -95,9 +93,7 @@ async fn test_call_tool() {
 async fn test_call_nonexistent_tool() {
     let server = McpServer::new();
 
-    let result = server
-        .call_tool("nonexistent", serde_json::json!({}))
-        .await;
+    let result = server.call_tool("nonexistent", serde_json::json!({})).await;
 
     assert!(result.is_err());
     match result {
@@ -174,12 +170,10 @@ fn test_tool_serialization() {
 #[test]
 fn test_tool_result_serialization() {
     let result = ToolResult {
-        content: vec![
-            ContentItem {
-                content_type: "text".to_string(),
-                text: Some("Hello".to_string()),
-            },
-        ],
+        content: vec![ContentItem {
+            content_type: "text".to_string(),
+            text: Some("Hello".to_string()),
+        }],
         is_error: false,
     };
 
