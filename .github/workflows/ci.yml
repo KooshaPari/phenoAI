@@ -195,8 +195,40 @@ jobs:
         with:
           fail-on-severity: low
 
+<<<<<<< HEAD
   lint:
     name: ci / lint
+=======
+  # ===========================================================================
+  # STAGE 4: Trunk.io (only if repo has trunk config)
+  # ===========================================================================
+
+  trunk-check:
+    name: Trunk Check
+    needs: detect
+    if: needs.detect.outputs.has_ci_lint == 'true'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run trunk only if configured
+        run: |
+          if [ -f "trunk.yaml" ] && [ -d ".trunk" ]; then
+            echo "Trunk configured — running"
+            # trunk install requires the CLI; pull action handles that
+          else
+            echo "Trunk not configured (no trunk.yaml + .trunk/) — skipping"
+            exit 0
+          fi
+      - uses: trunk-io/trunk-action@04ba50e7658c81db7356da96657e6e77f220bfa3
+        if: hashFiles('trunk.yaml', '.trunk/trunk.yaml') != ''
+
+  # ===========================================================================
+  # STAGE 5: Aggregation gate for branch protection
+  # ===========================================================================
+  ci:
+    name: CI
+>>>>>>> bd6df83 (fix(ci): pin trunk action release)
     if: always()
     needs: [detect, rust, cargo-deny, python, go, typescript, security, dep-review]
     runs-on: ubuntu-latest
@@ -230,6 +262,7 @@ jobs:
             exit 1
           fi
           echo ""
+<<<<<<< HEAD
           echo "✅ All lint checks passed (or were skipped)"
 
   test:
@@ -242,3 +275,13 @@ jobs:
         run: |
           # Test gate is currently combined with lint
           echo "✅ All test stages passed (gated via ci / lint)"
+=======
+          echo "Per-language results (advisory, non-blocking):"
+          echo "  Rust:        ${{ needs.rust.result }}"
+          echo "  Python:      ${{ needs.python.result }}"
+          echo "  Go:          ${{ needs.go.result }}"
+          echo "  TS/JS:       ${{ needs.typescript.result }}"
+          echo "  Security:    ${{ needs.security.result }}"
+          echo "  Dep review:  ${{ needs.dependency-review.result }}"
+          echo "  Trunk:       ${{ needs.trunk-check.result }}"
+>>>>>>> bd6df83 (fix(ci): pin trunk action release)
