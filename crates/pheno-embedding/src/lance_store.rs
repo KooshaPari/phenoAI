@@ -14,15 +14,15 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use arrow_array::{
     Array, FixedSizeListArray, Float32Array, RecordBatch, RecordBatchIterator, RecordBatchReader,
     StringArray,
 };
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use futures::TryStreamExt;
-use lancedb::DistanceType;
 use lancedb::query::{ExecutableQuery, QueryBase, Select};
+use lancedb::DistanceType;
 
 /// Default chunk size used when materialising the result of an `ann`
 /// query into a single `RecordBatch` for id extraction.
