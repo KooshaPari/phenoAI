@@ -1,11 +1,11 @@
 // Integration tests for llm-router crate
 // Traces to: FR-001
 
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
 
 use llm_router::{
-    CompletionRequest, CompletionResponse, LlmError, LlmRouter, LlmProvider, Message, RetryConfig,
+    CompletionRequest, CompletionResponse, LlmError, LlmProvider, LlmRouter, Message, RetryConfig,
     TokenUsage,
 };
 
@@ -45,10 +45,7 @@ impl MockProvider {
 
 #[::async_trait::async_trait]
 impl LlmProvider for MockProvider {
-    async fn complete(
-        &self,
-        request: &CompletionRequest,
-    ) -> Result<CompletionResponse, LlmError> {
+    async fn complete(&self, request: &CompletionRequest) -> Result<CompletionResponse, LlmError> {
         if self.should_fail {
             return Err(LlmError::Provider("Mock failure".to_string()));
         }
@@ -84,12 +81,10 @@ impl LlmProvider for MockProvider {
 fn test_completion_request_serialization() {
     let request = CompletionRequest {
         model: "gpt-4".to_string(),
-        messages: vec![
-            Message {
-                role: "user".to_string(),
-                content: "Hello".to_string(),
-            },
-        ],
+        messages: vec![Message {
+            role: "user".to_string(),
+            content: "Hello".to_string(),
+        }],
         temperature: Some(0.7),
         max_tokens: Some(100),
         timeout_ms: Some(30000),
@@ -99,8 +94,7 @@ fn test_completion_request_serialization() {
     assert!(json.contains("gpt-4"));
     assert!(json.contains("Hello"));
 
-    let deserialized: CompletionRequest =
-        serde_json::from_str(&json).expect("Should deserialize");
+    let deserialized: CompletionRequest = serde_json::from_str(&json).expect("Should deserialize");
     assert_eq!(deserialized.model, "gpt-4");
 }
 
@@ -121,8 +115,7 @@ fn test_completion_response_serialization() {
     let json = serde_json::to_string(&response).expect("Should serialize");
     assert!(json.contains("Test response"));
 
-    let deserialized: CompletionResponse =
-        serde_json::from_str(&json).expect("Should deserialize");
+    let deserialized: CompletionResponse = serde_json::from_str(&json).expect("Should deserialize");
     assert_eq!(deserialized.content, "Test response");
     assert_eq!(deserialized.usage.total_tokens, 30);
 }
@@ -309,8 +302,8 @@ async fn test_timeout_returns_timeout_error() {
     // If it succeeds, that's fine too (tokio::timeout might not trigger for fast ops).
     // Just assert no panic happens.
     match result {
-        Ok(_) => {}   // fast enough
-        Err(LlmError::Timeout) => {}  // timed out as expected
+        Ok(_) => {}                  // fast enough
+        Err(LlmError::Timeout) => {} // timed out as expected
         Err(e) => panic!("unexpected error: {e}"),
     }
 }

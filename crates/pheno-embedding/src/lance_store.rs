@@ -14,15 +14,15 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use arrow_array::{
     Array, FixedSizeListArray, Float32Array, RecordBatch, RecordBatchIterator, RecordBatchReader,
     StringArray,
 };
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use futures::TryStreamExt;
-use lancedb::DistanceType;
 use lancedb::query::{ExecutableQuery, QueryBase, Select};
+use lancedb::DistanceType;
 
 /// Default chunk size used when materialising the result of an `ann`
 /// query into a single `RecordBatch` for id extraction.
@@ -131,23 +131,29 @@ impl LanceStore {
         // Lock the dimension for the whole upsert so we can't race with a
         // concurrent first-upsert that would otherwise create the table
         // with a different size.
-        let mut dim_guard = self.dim.lock().expect("dim mutex poisoned");
-        let dim = match *dim_guard {
-            Some(d) => {
-                if d != vector.len() {
-                    return Err(anyhow!(
-                        "vector dimension mismatch: table dim is {d}, upserted vector has len {}",
-                        vector.len()
-                    ));
+        let (dim, mut dim_guard) = {
+            let guard = self.dim.lock().expect("dim mutex poisoned");
+            match *guard {
+                Some(d) => {
+                    if d != vector.len() {
+                        return Err(anyhow!(
+                            "vector dimension mismatch: table dim is {d}, upserted vector has len {}",
+                            vector.len()
+                        ));
+                    }
+                    (d, None)
                 }
-                d
-            }
-            None => {
-                let d = vector.len();
-                *dim_guard = Some(d);
-                d
+                None => {
+                    let d = vector.len();
+                    (d, Some(d))
+                }
             }
         };
+        // Persist the discovered dim while we still hold the lock.
+        if let Some(d) = mut dim_guard {
+            *self.dim.lock().expect("dim mutex poisoned") = Some(d);
+        }
+        drop(dim_guard);
 
         // Make sure the table exists with the right schema.
         let table = self.ensure_table(dim).await?;
@@ -165,7 +171,7 @@ impl LanceStore {
             .with_context(|| format!("deleting existing row with id {id:?}"))?;
 
         // Build a one-row RecordBatch and append it.
-        let schema: SchemaRef = Arc::new(table_schema(dim));
+        let schema: SchemaRef = table_schema(dim);
         let batch = build_record_batch(&schema, &[id.as_str()], &[model_id.as_str()], &[vector])?;
         append_batch(&table, batch).await?;
 
@@ -443,7 +449,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let store = LanceStore::new(dir.path()).await.unwrap();
         let table = store.ensure_table(4).await.unwrap();
-        let schema: SchemaRef = Arc::new(table_schema(4));
+        let schema: SchemaRef = table_schema(4);
         let vector = vec_for(0.0);
         let batch = build_record_batch(&schema, &["a"], &["m1"], &[&vector]).unwrap();
 
