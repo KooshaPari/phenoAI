@@ -14,9 +14,9 @@ tracing = "0.1"
 reqwest = { version = "0.13", features = ["json", "rustls"] }
 
 # LanceDB-backed vector store
-lancedb = "0.31"
-arrow-array = "58"
-arrow-schema = "58"
+lancedb = "0.33"
+arrow-array = "59"
+arrow-schema = "59"
 futures = "0.3"
 
 [dev-dependencies]
