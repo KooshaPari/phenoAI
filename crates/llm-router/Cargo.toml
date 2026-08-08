@@ -19,3 +19,6 @@ dashmap = "7.0.0-rc2"
 substrate-core = { git = "https://github.com/KooshaPari/substrate.git", rev = "2a54c72", package = "substrate-core" }
 omniroute-adapter = { git = "https://github.com/KooshaPari/substrate.git", rev = "2a54c72", package = "omniroute-adapter" }
 # tokio/sync is included via workspace tokio (full features)
+
+[dev-dependencies]
+tracing-subscriber = { version = "0.3", features = ["std", "fmt"] }
