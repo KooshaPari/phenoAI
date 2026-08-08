@@ -131,23 +131,25 @@ impl LanceStore {
         // Lock the dimension for the whole upsert so we can't race with a
         // concurrent first-upsert that would otherwise create the table
         // with a different size.
-        let mut dim_guard = self.dim.lock().expect("dim mutex poisoned");
-        let dim = match *dim_guard {
-            Some(d) => {
-                if d != vector.len() {
-                    return Err(anyhow!(
-                        "vector dimension mismatch: table dim is {d}, upserted vector has len {}",
-                        vector.len()
-                    ));
+        let dim = {
+            let mut guard = self.dim.lock().expect("dim mutex poisoned");
+            match *guard {
+                Some(d) => {
+                    if d != vector.len() {
+                        return Err(anyhow!(
+                            "vector dimension mismatch: table dim is {d}, upserted vector has len {}",
+                            vector.len()
+                        ));
+                    }
+                    d
                 }
-                d
+                None => {
+                    let d = vector.len();
+                    *guard = Some(d);
+                    d
+                }
             }
-            None => {
-                let d = vector.len();
-                *dim_guard = Some(d);
-                d
-            }
-        };
+        }; // guard dropped here, lock released
 
         // Make sure the table exists with the right schema.
         let table = self.ensure_table(dim).await?;
@@ -205,10 +207,13 @@ impl LanceStore {
             ));
         }
 
-        let table_guard = self.table.lock().expect("table mutex poisoned");
-        let table = table_guard
-            .as_ref()
-            .ok_or_else(|| anyhow!("vectors table has not been initialised yet"))?;
+        let table = {
+            let guard = self.table.lock().expect("table mutex poisoned");
+            guard
+                .as_ref()
+                .ok_or_else(|| anyhow!("vectors table has not been initialised yet"))?
+                .clone()
+        };
 
         // We only need the `id` column for the result; selecting only
         // the column we need avoids loading vectors off disk.
@@ -227,8 +232,6 @@ impl LanceStore {
             .try_collect()
             .await
             .map_err(|e| anyhow!(e).context("collecting ann result batches"))?;
-
-        drop(table_guard);
 
         let mut ids: Vec<String> = Vec::with_capacity(ANN_BATCH_BUFFER);
         for batch in &batches {
