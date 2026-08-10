@@ -11,6 +11,7 @@
 //!
 //! See [`substrate_omniroute::LlmRouter`] for the recommended facade.
 
+pub mod providers;
 pub mod substrate_omniroute;
 
 use anyhow::Result;
@@ -83,11 +84,25 @@ pub struct OpenAiProvider {
 
 impl OpenAiProvider {
     pub fn new(api_key: String) -> Self {
+        Self::with_base_url(api_key, "https://api.openai.com/v1".to_string())
+    }
+
+    pub fn with_base_url(api_key: String, base_url: String) -> Self {
         Self {
             api_key,
-            base_url: "https://api.openai.com/v1".to_string(),
+            base_url,
             client: reqwest::Client::new(),
         }
+    }
+
+    /// Construct from a [`ProviderConfig`](providers::ProviderConfig).
+    ///
+    /// Reads the API key from the configured environment variable.
+    /// Returns `None` if the environment variable is unset.
+    pub fn from_config(config: &providers::ProviderConfig) -> Option<Self> {
+        config.resolve_api_key().map(|key| {
+            Self::with_base_url(key, config.base_url.clone())
+        })
     }
 }
 
@@ -286,5 +301,32 @@ mod tests {
             "duplicate Display for variant: {:?}",
             messages
         );
+    }
+}
+
+#[cfg(test)]
+mod config_provider_tests {
+    use super::*;
+    use crate::providers;
+
+    #[test]
+    fn openai_default_uses_openai_endpoint() {
+        let p = OpenAiProvider::new("test-key".into());
+        assert_eq!(p.provider_name(), "openai");
+    }
+
+    #[test]
+    fn from_config_minimax() {
+        let cfg = providers::minimax();
+        unsafe { std::env::set_var(&cfg.api_key_env, "test-minimax-key"); }
+        let p = OpenAiProvider::from_config(&cfg).expect("should construct from config");
+        assert_eq!(p.provider_name(), "openai"); // provider_name() is hardcoded to "openai" for now
+    }
+
+    #[test]
+    fn from_config_missing_env_returns_none() {
+        let mut cfg = providers::kimi();
+        cfg.api_key_env = "DEFINITELY_NOT_SET_VAR_XYZ_123".into();
+        assert!(OpenAiProvider::from_config(&cfg).is_none());
     }
 }
