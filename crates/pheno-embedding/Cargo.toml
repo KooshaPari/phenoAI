@@ -3,6 +3,7 @@ name = "pheno-embedding"
 version = "0.1.0"
 edition = "2024"
 description = "Embedding pipeline for Pheno"
+license.workspace = true
 
 [dependencies]
 tokio = { workspace = true }
@@ -14,7 +15,7 @@ tracing = "0.1"
 reqwest = { version = "0.13", features = ["json", "rustls"] }
 
 # LanceDB-backed vector store
-lancedb = "0.37"
+lancedb = "0.38"
 arrow-array = "59"
 arrow-schema = "59"
 futures = "0.3"
