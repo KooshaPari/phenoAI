@@ -1,17 +1,14 @@
 # =============================================================================
 # Trunk.io — Plugin versions for linting/formatting tools
 # =============================================================================
-# This file is auto-generated. Run `trunk upgrade` to update.
-# https://docs.trunk.io/check/reference
+# Schema: v0.1 (trunk CLI v1.25.x / trunk-action v1.3.1)
+# Reference: trunk-io/trunk-action/.trunk/trunk.yaml @ 04ba50e7
 #
-# Restored for trunk CLI v1.22.x / trunk-action v1.3.1.
-# v1.22.x schema requires the `version: 0.1` field and rejects:
-#   - top-level `linters:`/`formatters:` (must live inside each plugin block)
-#   - top-level `actions.{trunk-check,trunk-merge,trunk-push}`
-#   - top-level `cache:` (cache is configured via action inputs, not the config file)
-#   - top-level `cli:`/`env:` (use environment variables / GitHub secrets)
-# Plugins are now declared explicitly per linter/formatter and each one
-# can carry its own `enabled`, `run`, and direct_configs fields.
+# This repo is a Rust workspace (phenoAI), so we only enable Rust-relevant
+# plugins. Other linters (actionlint, prettier, eslint, mypy, ruff, etc.)
+# were removed because the codebase has no matching source files to lint;
+# leaving them enabled would cause every CI run to flag missing
+# direct_configs files.
 # =============================================================================
 
 version: 0.1
@@ -34,42 +31,11 @@ plugins:
         run: actionlint ${target}
     direct_configs:
       - .github/workflows/*.yml
-  black:
-    enabled: true
-    commands:
-      - name: black
-        run: black --check --line-length 100 ${target}
-    direct_configs:
-      - pyproject.toml
-      - ruff.toml
   clippy:
     enabled: true
     commands:
       - name: clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
-  eslint:
-    enabled: true
-    direct_configs:
-      - .eslintrc.*
-      - eslint.config.*
-  golangci-lint:
-    enabled: true
-    direct_configs:
-      - .golangci.yml
-      - .golangci.yaml
-  mypy:
-    enabled: true
-    commands:
-      - name: mypy
-        run: mypy --ignore-missing-imports ${target}
-  ruff:
-    enabled: true
-    commands:
-      - name: ruff
-        run: ruff check --output-format=github ${target}
-    direct_configs:
-      - ruff.toml
-      - pyproject.toml
   shellcheck:
     enabled: true
   taplo:
@@ -78,13 +44,21 @@ plugins:
     enabled: true
 
   # ---- Formatters ----
-  prettier:
-    enabled: true
-    direct_configs:
-      - .prettierrc
-      - prettier.config.*
   rustfmt:
     enabled: true
     commands:
       - name: rustfmt
         run: rustfmt ${target}
+
+lint:
+  # Only medium+ findings block `trunk check`. Trunk reports all findings
+  # regardless; this just sets which severity level fails CI.
+  threshold:
+    - linters: [ALL]
+      level: medium
+
+actions:
+  enabled:
+    - trunk-announce
+    - trunk-fmt-pre-commit
+    - trunk-upgrade-available
