@@ -52,8 +52,20 @@ actions:
 # to download/install the linter binaries. Without these sections,
 # `trunk check` reports "Unable to find binary in PATH" for every
 # linter that ships as a language-specific package.
+#
+# phenoAI is a Rust workspace with .github/workflows/*.yml and no
+# JS/Python source files. We only need the go runtime (for taplo +
+# actionlint); Rust linters (clippy, rustfmt) come with cargo, and
+# shellcheck / yamllint are pulled as static binaries by trunk-cli
+# without needing a declared runtime.
+#
+# node@22 and python@3.12 were removed because they tried to download
+# Python/Node hermetic builds from a mirror that returns HTTP 404 on
+# trunk-cli v1.25 (observed: 'GET .../python-standalone/.../python.tar
+# -> 404', 'GET .../node-v22.x.x-linux-x64.tar.xz -> 404'). They were
+# only kept as 'reserved for future prettier/ruff' placeholders; since
+# phenoAI has no such source files today, removing them is the narrowest
+# fix.
 runtimes:
   enabled:
     - go@1.24        # taplo, actionlint
-    - node@22        # (future: prettier, eslint)
-    - python@3.12    # (future: ruff, mypy)
