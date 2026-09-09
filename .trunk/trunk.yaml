@@ -47,3 +47,13 @@ actions:
     - trunk-announce
     - trunk-fmt-pre-commit
     - trunk-upgrade-available
+
+# Runtimes declare the language runtime installations trunk CLI needs
+# to download/install the linter binaries. Without these sections,
+# `trunk check` reports "Unable to find binary in PATH" for every
+# linter that ships as a language-specific package.
+runtimes:
+  enabled:
+    - go@1.24        # taplo, actionlint
+    - node@22        # (future: prettier, eslint)
+    - python@3.12    # (future: ruff, mypy)
