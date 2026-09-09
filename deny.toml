@@ -12,6 +12,12 @@ ignore = [
 ]
 
 [licenses]
+# SPDX expression syntax version. cargo-deny 0.16+ rejects `-only` / `-or-later`
+# license identifiers in their bare form and requires them to be wrapped
+# in a "WITH" / "OR" expression, e.g. "GPL-3.0-only" must be "GPL-3.0-only"
+# without a prefix but the parser expects either the bare-license form or
+# the wrapped expression form. Use version 2 which accepts both bare and
+# composite license identifiers.
 version = 2
 allow = [
     "Apache-2.0",
@@ -23,7 +29,12 @@ allow = [
     "CC0-1.0",
     "CC-BY-SA-4.0",
     "CDDL-1.0",                 # inferno v0.11.21 (transitive via pprof v0.15.0; dev-dep via profiling tooling)
-    "GPL-3.0-only",
+    # SPDX expression form: cargo-deny 0.16+ requires GNU-family identifiers
+    # to be wrapped (it expects a `<bare-gnu-license>` form, e.g. `GPL-3.0`).
+    # The `-only` / `-or-later` suffixes must be expressed as an SPDX
+    # operator expression. Using the bare form `GPL-3.0` matches what
+    # cargo-deny expects after the parser update.
+    "GPL-3.0",
     "ISC",
     "MIT",
     "MPL-2.0",
