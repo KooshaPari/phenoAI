@@ -1,14 +1,13 @@
 # =============================================================================
-# Trunk.io — Plugin versions for linting/formatting tools
+# Trunk.io configuration (schema v0.1)
 # =============================================================================
-# Schema: v0.1 (trunk CLI v1.25.x / trunk-action v1.3.1)
-# Reference: trunk-io/trunk-action/.trunk/trunk.yaml @ 04ba50e7
+# Reference: https://raw.githubusercontent.com/trunk-io/configs/main/.trunk/trunk.yaml
+# trunk CLI:  v1.25.x (installed by trunk-io/trunk-action@04ba50e7)
 #
-# This repo is a Rust workspace (phenoAI), so we only enable Rust-relevant
-# plugins. Other linters (actionlint, prettier, eslint, mypy, ruff, etc.)
+# This repo is a Rust workspace (phenoAI), so only Rust-relevant plugins are
+# enabled. Linters for other languages (prettier, eslint, mypy, ruff, etc.)
 # were removed because the codebase has no matching source files to lint;
-# leaving them enabled would cause every CI run to flag missing
-# direct_configs files.
+# leaving them enabled would cause every CI run to flag missing config files.
 # =============================================================================
 
 version: 0.1
@@ -19,36 +18,11 @@ cli:
 plugins:
   sources:
     - id: trunk
-      ref: v1.2.2
-    - id: community
-      ref: main
-
-  # ---- Linters ----
-  actionlint:
-    enabled: true
-    commands:
-      - name: actionlint
-        run: actionlint ${target}
-    direct_configs:
-      - .github/workflows/*.yml
-  clippy:
-    enabled: true
-    commands:
-      - name: clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-  shellcheck:
-    enabled: true
-  taplo:
-    enabled: true
-  yamllint:
-    enabled: true
-
-  # ---- Formatters ----
-  rustfmt:
-    enabled: true
-    commands:
-      - name: rustfmt
-        run: rustfmt ${target}
+      ref: v1.9.0
+      uri: https://github.com/trunk-io/plugins
+    - id: configs
+      ref: v1.2.1
+      uri: https://github.com/trunk-io/configs
 
 lint:
   # Only medium+ findings block `trunk check`. Trunk reports all findings
@@ -56,6 +30,17 @@ lint:
   threshold:
     - linters: [ALL]
       level: medium
+
+  # Linter names listed here come from the `trunk` and `configs` plugin
+  # registries above. Linters are identified by NAME ONLY (no @version),
+  # because trunk CLI resolves versions internally from each plugin source.
+  enabled:
+    - actionlint    # .github/workflows/*.yml
+    - clippy        # src/ + tests/ in every crate
+    - shellcheck    # *.sh scripts in CI workflows
+    - taplo         # Cargo.toml + *.toml
+    - yamllint      # .github/workflows/*.yml + .trunk/trunk.yaml
+    - rustfmt       # src/ + tests/ in every crate
 
 actions:
   enabled:
