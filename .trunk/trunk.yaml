@@ -3,7 +3,18 @@
 # =============================================================================
 # This file is auto-generated. Run `trunk upgrade` to update.
 # https://docs.trunk.io/check/reference
+#
+# Restored for trunk CLI v1.22.x / trunk-action v1.3.1.
+# v1.22.x schema requires the `version: 0.1` field and rejects:
+#   - top-level `linters:`/`formatters:` (must live inside each plugin block)
+#   - top-level `actions.{trunk-check,trunk-merge,trunk-push}`
+#   - top-level `cache:` (cache is configured via action inputs, not the config file)
+#   - top-level `cli:`/`env:` (use environment variables / GitHub secrets)
+# Plugins are now declared explicitly per linter/formatter and each one
+# can carry its own `enabled`, `run`, and direct_configs fields.
 # =============================================================================
+
+version: 0.1
 
 plugins:
   sources:
@@ -12,23 +23,22 @@ plugins:
     - id: community
       ref: main
 
-# Linters (auto-detected by file type)
-linters:
+  # ---- Linters ----
   actionlint:
     enabled: true
     commands:
       - name: actionlint
         run: actionlint ${target}
-        direct_configs:
-          - .github/workflows/*.yml
+    direct_configs:
+      - .github/workflows/*.yml
   black:
     enabled: true
     commands:
       - name: black
         run: black --check --line-length 100 ${target}
-        direct_configs:
-          - pyproject.toml
-          - ruff.toml
+    direct_configs:
+      - pyproject.toml
+      - ruff.toml
   clippy:
     enabled: true
     commands:
@@ -54,9 +64,9 @@ linters:
     commands:
       - name: ruff
         run: ruff check --output-format=github ${target}
-        direct_configs:
-          - ruff.toml
-          - pyproject.toml
+    direct_configs:
+      - ruff.toml
+      - pyproject.toml
   shellcheck:
     enabled: true
   taplo:
@@ -64,15 +74,7 @@ linters:
   yamllint:
     enabled: true
 
-# Formatters
-formatters:
-  black:
-    enabled: true
-    commands:
-      - name: black
-        run: black --line-length 100 ${target}
-        direct_configs:
-          - pyproject.toml
+  # ---- Formatters ----
   prettier:
     enabled: true
     direct_configs:
@@ -83,31 +85,3 @@ formatters:
     commands:
       - name: rustfmt
         run: rustfmt ${target}
-
-# Actions (CI optimization)
-actions:
-  trunk-check:
-    enabled: true
-    size: 5GB
-    memory: 16GB
-    disk: 10GB
-  trunk-merge:
-    enabled: true
-    size: 5GB
-  trunk-push:
-    enabled: true
-    size: 5GB
-
-# Caching
-cache:
-  enabled: true
-  storage: local
-
-# CLI
-cli:
-  version: 1.22.2
-
-# Environment
-env:
-  variables:
-    EDITOR: vim
