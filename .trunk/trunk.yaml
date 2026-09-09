@@ -28,6 +28,17 @@ lint:
   # Only medium+ findings block `trunk check`. Trunk reports all findings
   # regardless; this just sets which severity level fails CI.
   threshold:
+    # Per EXECUTION-CORRECTION discipline (phenoForge batch, 2026-09-09):
+    # The threshold is intentionally NOT lowered. Pre-PR #103 this file
+    # used the v0.0 schema and the lint check was failing with 422 on
+    # the orphan SHA pin, hiding ALL real findings. After #103 fixed
+    # the pin, the Lint & Format check surfaces 35 pre-existing issues
+    # in .trunk/out/*.yaml baseline files, but most are low-severity
+    # (rumdl/inline-shell/...). The threshold stays at 'level: medium'
+    # to keep the gate honest. Trunk Check currently PASSES because the
+    # 35 baseline issues don't reach medium severity. If a future diff
+    # introduces a HIGH or CRITICAL issue, this gate will correctly
+    # fail, which is the desired behavior.
     - linters: [ALL]
       level: medium
 
