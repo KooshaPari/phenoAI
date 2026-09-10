@@ -1,113 +1,82 @@
 # =============================================================================
-# Trunk.io — Plugin versions for linting/formatting tools
+# Trunk.io configuration (schema v0.1)
 # =============================================================================
-# This file is auto-generated. Run `trunk upgrade` to update.
-# https://docs.trunk.io/check/reference
+# Reference: https://raw.githubusercontent.com/trunk-io/configs/main/.trunk/trunk.yaml
+# trunk CLI:  v1.25.x (installed by trunk-io/trunk-action@04ba50e7)
+#
+# This repo is a Rust workspace (phenoAI), so only Rust-relevant plugins are
+# enabled. Linters for other languages (prettier, eslint, mypy, ruff, etc.)
+# were removed because the codebase has no matching source files to lint;
+# leaving them enabled would cause every CI run to flag missing config files.
 # =============================================================================
+
+version: 0.1
+
+cli:
+  version: 1.25.0
 
 plugins:
   sources:
     - id: trunk
-      ref: v1.2.2
-    - id: community
-      ref: main
+      ref: v1.9.0
+      uri: https://github.com/trunk-io/plugins
+    - id: configs
+      ref: v1.2.1
+      uri: https://github.com/trunk-io/configs
 
-# Linters (auto-detected by file type)
-linters:
-  actionlint:
-    enabled: true
-    commands:
-      - name: actionlint
-        run: actionlint ${target}
-        direct_configs:
-          - .github/workflows/*.yml
-  black:
-    enabled: true
-    commands:
-      - name: black
-        run: black --check --line-length 100 ${target}
-        direct_configs:
-          - pyproject.toml
-          - ruff.toml
-  clippy:
-    enabled: true
-    commands:
-      - name: clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-  eslint:
-    enabled: true
-    direct_configs:
-      - .eslintrc.*
-      - eslint.config.*
-  golangci-lint:
-    enabled: true
-    direct_configs:
-      - .golangci.yml
-      - .golangci.yaml
-  mypy:
-    enabled: true
-    commands:
-      - name: mypy
-        run: mypy --ignore-missing-imports ${target}
-  ruff:
-    enabled: true
-    commands:
-      - name: ruff
-        run: ruff check --output-format=github ${target}
-        direct_configs:
-          - ruff.toml
-          - pyproject.toml
-  shellcheck:
-    enabled: true
-  taplo:
-    enabled: true
-  yamllint:
-    enabled: true
+lint:
+  # Only medium+ findings block `trunk check`. Trunk reports all findings
+  # regardless; this just sets which severity level fails CI.
+  threshold:
+    # Per EXECUTION-CORRECTION discipline (phenoForge batch, 2026-09-09):
+    # The threshold is intentionally NOT lowered. Pre-PR #103 this file
+    # used the v0.0 schema and the lint check was failing with 422 on
+    # the orphan SHA pin, hiding ALL real findings. After #103 fixed
+    # the pin, the Lint & Format check surfaces 35 pre-existing issues
+    # in .trunk/out/*.yaml baseline files, but most are low-severity
+    # (rumdl/inline-shell/...). The threshold stays at 'level: medium'
+    # to keep the gate honest. Trunk Check currently PASSES because the
+    # 35 baseline issues don't reach medium severity. If a future diff
+    # introduces a HIGH or CRITICAL issue, this gate will correctly
+    # fail, which is the desired behavior.
+    - linters: [ALL]
+      level: medium
 
-# Formatters
-formatters:
-  black:
-    enabled: true
-    commands:
-      - name: black
-        run: black --line-length 100 ${target}
-        direct_configs:
-          - pyproject.toml
-  prettier:
-    enabled: true
-    direct_configs:
-      - .prettierrc
-      - prettier.config.*
-  rustfmt:
-    enabled: true
-    commands:
-      - name: rustfmt
-        run: rustfmt ${target}
+  # Linter names listed here come from the `trunk` and `configs` plugin
+  # registries above. Linters are identified by NAME ONLY (no @version),
+  # because trunk CLI resolves versions internally from each plugin source.
+  enabled:
+    - actionlint    # .github/workflows/*.yml
+    - clippy        # src/ + tests/ in every crate
+    - shellcheck    # *.sh scripts in CI workflows
+    - taplo         # Cargo.toml + *.toml
+    - yamllint      # .github/workflows/*.yml + .trunk/trunk.yaml
+    - rustfmt       # src/ + tests/ in every crate
 
-# Actions (CI optimization)
 actions:
-  trunk-check:
-    enabled: true
-    size: 5GB
-    memory: 16GB
-    disk: 10GB
-  trunk-merge:
-    enabled: true
-    size: 5GB
-  trunk-push:
-    enabled: true
-    size: 5GB
+  enabled:
+    - trunk-announce
+    - trunk-fmt-pre-commit
+    - trunk-upgrade-available
 
-# Caching
-cache:
-  enabled: true
-  storage: local
-
-# CLI
-cli:
-  version: 1.22.2
-
-# Environment
-env:
-  variables:
-    EDITOR: vim
+# Runtimes declare the language runtime installations trunk CLI needs
+# to download/install the linter binaries. Without these sections,
+# `trunk check` reports "Unable to find binary in PATH" for every
+# linter that ships as a language-specific package.
+#
+# phenoAI is a Rust workspace with .github/workflows/*.yml and no
+# JS/Python source files. We only need the go runtime (for taplo +
+# actionlint); Rust linters (clippy, rustfmt) come with cargo, and
+# shellcheck / yamllint are pulled as static binaries by trunk-cli
+# without needing a declared runtime.
+#
+# node@22 and python@3.12 were removed because they tried to download
+# Python/Node hermetic builds from a mirror that returns HTTP 404 on
+# trunk-cli v1.25 (observed: 'GET .../python-standalone/.../python.tar
+# -> 404', 'GET .../node-v22.x.x-linux-x64.tar.xz -> 404'). They were
+# only kept as 'reserved for future prettier/ruff' placeholders; since
+# phenoAI has no such source files today, removing them is the narrowest
+# fix.
+runtimes:
+  enabled:
+    - go@1.24        # taplo, actionlint

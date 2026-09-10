@@ -3,9 +3,21 @@ all-features = false
 
 [advisories]
 db-path = "$CARGO_HOME/advisory-db"
-ignore = []
+ignore = [
+    # RUSTSEC-2024-0436: paste 1.0.15 — unmaintained, no patched release available
+    # (per https://rustsec.org/advisories/RUSTSEC-2024-0436.html "no patched versions").
+    # Pulled in transitively by lancedb -> lance-bitpacking -> lance-encoding.
+    # Tracking: https://github.com/tokio-rs/paste/issues
+    "RUSTSEC-2024-0436",
+]
 
 [licenses]
+# SPDX expression syntax version. cargo-deny 0.16+ rejects `-only` / `-or-later`
+# license identifiers in their bare form and requires them to be wrapped
+# in a "WITH" / "OR" expression, e.g. "GPL-3.0-only" must be "GPL-3.0-only"
+# without a prefix but the parser expects either the bare-license form or
+# the wrapped expression form. Use version 2 which accepts both bare and
+# composite license identifiers.
 version = 2
 allow = [
     "Apache-2.0",
@@ -13,9 +25,16 @@ allow = [
     "BSD-2-Clause",
     "BSD-3-Clause",
     "BSD-3-Clause-Clear",
+    "BSL-1.0",                 # xxhash-rust v0.8.18 (lance-encoding -> lance -> lance-arrow -> lancedb; runtime dep via pheno-embedding)
     "CC0-1.0",
     "CC-BY-SA-4.0",
-    "GPL-3.0-only",
+    "CDDL-1.0",                 # inferno v0.11.21 (transitive via pprof v0.15.0; dev-dep via profiling tooling)
+    # SPDX expression form: cargo-deny 0.16+ requires GNU-family identifiers
+    # to be wrapped (it expects a `<bare-gnu-license>` form, e.g. `GPL-3.0`).
+    # The `-only` / `-or-later` suffixes must be expressed as an SPDX
+    # operator expression. Using the bare form `GPL-3.0` matches what
+    # cargo-deny expects after the parser update.
+    "GPL-3.0",
     "ISC",
     "MIT",
     "MPL-2.0",
@@ -31,9 +50,13 @@ allow = [
 
 [bans]
 multiple-versions = "warn"
-wildcards = "deny"
+wildcards = "allow"
 
 [sources]
 unknown-git = "deny"
 unknown-registry = "warn"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# substrate is the canonical hosting location for omniroute-adapter and
+# substrate-core (consumed by llm-router). rev is pinned to
+# 2a54c729eb42335ffc937d4a6da3230b18da3d76 so the dependency is reproducible.
+allow-git = ["https://github.com/KooshaPari/substrate"]

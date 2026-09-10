@@ -3,6 +3,7 @@ name = "mcp-server"
 version = "0.1.0"
 edition = "2024"
 description = "MCP protocol server implementation"
+license.workspace = true
 
 [dependencies]
 tokio = { workspace = true }
