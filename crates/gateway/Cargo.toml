@@ -1,0 +1,10 @@
+[package]
+name = "gateway"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Gateway routing — combo variant selection and cliproxy delegation"
+license = "MIT OR Apache-2.0"
+
+[lib]
+path = "src/lib.rs"
