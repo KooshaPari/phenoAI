@@ -1,0 +1,19 @@
+[package]
+name = "phenocompose-port-publisher"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Phenotype Compose Publisher port trait — the canonical hex-architecture port for shipping a ComposedArtifact to a PublishTarget. Adapters implement Publisher to bridge to local sinks (docker registry, local file, kafka, S3, ...)."
+publish = false
+repository = "https://github.com/KooshaPari/PhenoCompose"
+documentation = "https://docs.rs/phenocompose-port-publisher"
+keywords = ["phenotype", "pheno-compose", "port"]
+categories = ["development-tools"]
+authors = ["kooshapari"]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+phenocompose-port-types = { path = "../pheno-compose-port-types" }
+thiserror = "2.0"

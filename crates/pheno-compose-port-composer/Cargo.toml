@@ -1,0 +1,19 @@
+[package]
+name = "phenocompose-port-composer"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Phenotype Compose Composer port trait — the canonical hex-architecture port for converting a Manifest into a ComposedArtifact. Adapters implement Composer to bridge to local builders (cargo, npm, docker buildx, bazel, ...)."
+publish = false
+repository = "https://github.com/KooshaPari/PhenoCompose"
+documentation = "https://docs.rs/phenocompose-port-composer"
+keywords = ["phenotype", "pheno-compose", "port"]
+categories = ["development-tools"]
+authors = ["kooshapari"]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+phenocompose-port-types = { path = "../pheno-compose-port-types" }
+thiserror = "2.0"

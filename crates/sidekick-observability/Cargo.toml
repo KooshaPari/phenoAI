@@ -1,0 +1,12 @@
+[package]
+name = "sidekick-observability"
+version = "0.0.1"
+edition = "2021"
+authors = ["Koosha Pari <kooshapari@gmail.com>"]
+license = "Apache-2.0"
+description = "Structured tracing initialization for Sidekick Rust crates"
+repository = "https://github.com/KooshaPari/Sidekick"
+
+[dependencies]
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }

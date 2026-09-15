@@ -1,0 +1,20 @@
+[package]
+name = "pheno-config"
+version = "0.1.0"
+edition = "2021"
+description = "PhenoCompose centralized configuration — figment-backed, layered config (TOML + env + defaults)"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/KooshaPari/PhenoCompose"
+authors = ["kooshapari"]
+publish = false
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+figment = { version = "0.10", features = ["toml", "env"] }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lib]
+name = "pheno_config"
+crate-type = ["lib"]

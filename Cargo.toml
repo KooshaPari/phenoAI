@@ -1,21 +1,27 @@
-# PhenoAI - AI/LLM Workspace
+# PhenoAI - AI/LLM Agent Workspace
 #
 # Contains AI-related crates:
 # - llm-router: LLM routing — substrate::omniroute-adapter shim
 #                (the actual routing logic lives in KooshaPari/substrate;
 #                 phenoAI delegates to it via a Cargo git dep)
 # - mcp-server: MCP protocol server
-# - embedding: Embedding pipeline
+# - pheno-embedding: Embedding pipeline
 #
 # Eidolon agent runtime (migrated from KooshaPari/zz-merge-unk-Eidolon):
-# - eidolon-core: Core traits, events, virtual stages
-# - eidolon-desktop: Desktop automation (macOS/Windows/Linux)
-# - eidolon-mobile: Mobile automation (iOS/Android)
-# - eidolon-sandbox: Sandboxed execution (Docker, unikernels, namespaces)
+# - eidolon-core: Core agent runtime
+# - eidolon-desktop: Desktop GUI
+# - eidolon-mobile: iOS/Android mobile agent
+# - eidolon-sandbox: Sandbox isolation (Docker/nanoVM/KVM/unikernel)
 # - phenotype-error-core: Shared error types
+# - phenotype-router: A2A router decision layer
+# - nexus: Service discovery
+# - sidekick-*: Agent messaging, observability, dispatch
+# - pheno-compose-*: Deployment composition, plugins, ports
+# - pheno-config: Configuration loading
+# - phench: Python benchmarking CLI (non-Cargo)
 [workspace]
 members = [
-    # phenoAI crates
+    # === Core AI crates ===
     "crates/llm-router",
     "crates/mcp-server",
     "crates/pheno-embedding",
@@ -25,6 +31,32 @@ members = [
     "crates/eidolon-desktop",
     "crates/eidolon-mobile",
     "crates/eidolon-sandbox",
+
+    # === Router + Service Discovery ===
+    "crates/phenotype-router",
+    "crates/nexus",
+
+    # === Sidekick (agent utilities) ===
+    "crates/sidekick-messaging",
+    "crates/sidekick-obs-core",
+    "crates/sidekick-observability",
+
+    # === PhenoCompose (deployment composition) ===
+    "crates/pheno-compose-agentctl",
+    "crates/pheno-compose-apple-container-adapter",
+    "crates/pheno-compose-i18n",
+    "crates/pheno-compose-pheno-config",
+    "crates/pheno-compose-phenocompose-cli",
+    "crates/pheno-compose-plugin-api",
+    "crates/pheno-compose-plugin-sample",
+    "crates/pheno-compose-wslc-adapter",
+    "crates/pheno-compose-port-composer",
+    "crates/pheno-compose-port-di",
+    "crates/pheno-compose-port-publisher",
+    "crates/pheno-compose-port-runtime",
+    "crates/pheno-compose-port-secret",
+    "crates/pheno-compose-port-types",
+    "crates/pheno-compose-secret-file-adapter",
 ]
 resolver = "3"
 
@@ -43,6 +75,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
 anyhow = "1.0"
+tracing = "0.1"
+async-trait = "0.1"
 
 # --- phenoAI-specific ---
 # Substrate superset — single source of truth for routing logic.
@@ -55,8 +89,6 @@ substrate = { git = "https://github.com/KooshaPari/substrate", branch = "main" }
 # --- Eidolon agent runtime dependencies (from KooshaPari/zz-merge-unk-Eidolon) ---
 phenotype-error-core = { path = "crates/phenotype-error-core" }
 log = "0.4"
-tracing = "0.1"
-async-trait = "0.1"
 uuid = { version = "1.6", features = ["v4", "serde"] }
 proptest = "1.6"
 bollard = "0.21"
