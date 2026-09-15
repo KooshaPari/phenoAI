@@ -1,0 +1,28 @@
+[package]
+name = "phenocompose-port-types"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Phenotype Compose port type definitions (Manifest, ComposedArtifact, PublishTarget, PublishReceipt, ImageRef, ContainerId, ContainerStatus) — the shared value types that flow across the Composer / Publisher / Runtime port traits."
+publish = false
+repository = "https://github.com/KooshaPari/PhenoCompose"
+documentation = "https://docs.rs/phenocompose-port-types"
+keywords = ["phenotype", "pheno-compose", "port"]
+categories = ["development-tools"]
+authors = ["kooshapari"]
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+# Enables `serde::Serialize` / `serde::Deserialize` derives
+# on the value types that flow through the secret adapter
+# (and any other adapter that wants to round-trip values
+# through a JSON / YAML / TOML config file). Off by default
+# so consumers of `phenocompose-port-types` don't have to
+# pay the serde compile-time cost.
+serde = ["dep:serde"]
+
+[dependencies]
+serde = { version = "1", optional = true }
+thiserror = "2.0"

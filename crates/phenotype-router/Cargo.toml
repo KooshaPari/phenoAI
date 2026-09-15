@@ -1,0 +1,68 @@
+[package]
+name = "phenotype-router"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.82"
+description = "Phenotype-owned router decision layer (ADR-050 / ADR-051, §8 router-architecture ACCEPTED 2026-06-20). Hexagonal L4 Port/Adapter primitive (ADR-038) with OTel-native OTLP span emission (ADR-012 / ADR-036B)."
+license = "MIT OR Apache-2.0"
+publish = false
+repository = "https://github.com/KooshaPari/phenotype-router"
+keywords = ["phenotype", "router", "llm", "routing", "otel", "substrate", "port-adapter"]
+categories = ["api-bindings", "asynchronous"]
+readme = "README.md"
+
+# Standalone crate — not a member of the root monorepo workspace
+# (which contains 100+ sub-crates). Consumers add it to their own
+# workspace or depend on it via a path/git dep.
+[lib]
+name = "phenotype_router"
+path = "src/lib.rs"
+
+# Explicit bench target (Cargo would normally auto-detect `benches/*.rs`
+# but the `[workspace]` declaration in this crate prevents auto-detection,
+# so we register the decision-layer criterion bench explicitly).
+[[bench]]
+name = "decision"
+path = "benches/decision.rs"
+harness = false
+
+[features]
+# Default features enable the OTLP substrate (ADR-023 Rule 3.1 observability
+# adoption) and the chaos matrix (L25 anti-fragility; off in prod by removing
+# from `default` once we have --release builds wired).
+default = ["otlp"]
+# Stub feature placeholder for future Bifrost FFI bridge (currently Go-side;
+# tracked in phenotype-gateway/packages/bifrost and absorbed at runtime via
+# the substrate-boundary port contract defined in ADR-050).
+bifrost = []
+# OTLP export substrate (ADR-012 / ADR-036B). When enabled, the decision
+# layer records one OTel-compatible span per `decide()` call. Defaults ON
+# to satisfy the ADR-023 Rule 3.1 quality bar (observability substrate
+# adoption); disable only for headless tests with `--no-default-features`.
+otlp = []
+# Chaos matrix dependencies (L25 anti-fragility pillar). Test-only by default;
+# prod builds do not pull in rand.
+chaos = []
+
+[dependencies]
+# Typed errors per the pheno-*-lib fleet pattern (ADR-038).
+thiserror = "2.0"
+# Object-safe async traits (LlmPort, ConnectorPort) per ADR-052 §1.
+async-trait = "0.1"
+# `#[instrument]` + span attributes per ADR-012 / ADR-036B.
+tracing = "0.1"
+# `tracing-subscriber` powers the `tracing::try_init()` helper in
+# `src/tracing.rs`; consumers can opt out by building with
+# `--no-default-features` and skipping the init.
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+# OTLP span attribute serialization per ADR-052 §3.
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+# Async runtime for `#[tokio::test]` in integration tests.
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "test-util"] }
+serde_json = "1"
+# Criterion bench harness for ADR-040 perf-budget gates.
+criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support", "rayon", "plotters"] }
+# Property-test randomness for the chaos matrix (L25 anti-fragility).
+rand = "0.8"
