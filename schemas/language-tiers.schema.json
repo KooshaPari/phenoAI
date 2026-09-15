@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Language tier assignment",
+  "type": "object",
+  "required": ["tier", "role", "justification"],
+  "properties": {
+    "tier": {
+      "enum": [0, 1, 2, 3],
+      "description": "0=Rust/Zig/Mojo core, 1=Go edge, 2=bindings/apps, 3=shell"
+    },
+    "role": {
+      "enum": [
+        "mcp-framework",
+        "mcp-implementation",
+        "fleet-runtime",
+        "rust-utilities",
+        "bootstrap",
+        "python-extras",
+        "edge-gateway",
+        "scripting"
+      ]
+    },
+    "justification": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Required for tier 1+; why not tier 0"
+    },
+    "parallel_lane": {
+      "type": "string",
+      "description": "Independent workstream id for parallel development"
+    }
+  }
+}

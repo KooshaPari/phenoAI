@@ -1,39 +1,13 @@
-/target
-# Cargo.lock is committed: release-attestation.yml uses --locked for reproducibility.
-# Removing from gitignore (L19 audit fix). See docs/slsa.md.
-**/*.rs.bk
-.DS_Store
-*.swp
-*.swo
-*~
-.vscode/
-.idea/
-target/
-
-# ===== Standard auto-generated hygiene ignores (do not edit manually) =====
-.env
-.env.*
-!.env.example
-node_modules/
-dist/
-build/
-coverage/
-.pytest_cache/
+# Git and Python
 __pycache__/
-.mypy_cache/
-.ruff_cache/
+*.py[cod]
+.pytest_cache/
 .venv/
-venv/
-# ===== End standard hygiene ignores =====
+*.egg-info/
 
-# eidolon-desktop build artifacts
-crates/.eidolon-desktop
+# Local DB from mailbox tools
+substrate.db
 
-# Appium UIA2 APKs (~17MB) — fetch via eidolon-fetch-uia2; do not commit binaries
-crates/eidolon-mobile/assets/uia2/*.apk
-crates/eidolon-mobile/assets/uia2/*.apk.partial
-.target-dxgi/
-.target-wayland/
-.target-pivot/
-.target-live-smokes/
-.target-linux-user-ns-smoke/
+# uv lock files (reproducible installs use requirements.txt + constraints)
+uv.lock
+servers/*/uv.lock

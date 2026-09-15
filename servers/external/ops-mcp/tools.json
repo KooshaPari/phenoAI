@@ -1,0 +1,146 @@
+{
+  "tools": [
+    {
+      "name": "pkg_load",
+      "description": "Load package",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "submitter": {
+            "type": "string",
+            "description": "The name of the thing calling this tool (openai"
+          },
+          "content": {
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "The title to submit"
+              },
+              "description": {
+                "type": "string",
+                "description": "The description to submit"
+              }
+            },
+            "type": "object",
+            "required": [
+              "title",
+              "description"
+            ],
+            "description": "The content of the message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "submitter",
+          "content"
+        ]
+      }
+    },
+    {
+      "name": "instance_logs",
+      "description": "Instance logs",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "image_name": {
+            "type": "string",
+            "description": "The image name of the instance to get logs from"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image_name"
+        ]
+      }
+    },
+    {
+      "name": "instance_create",
+      "description": "Instance create",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "image_name": {
+            "type": "string",
+            "description": "The image name of the instance to create"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image_name"
+        ]
+      }
+    },
+    {
+      "name": "list_instances",
+      "description": "List instances",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "submitter": {
+            "type": "string",
+            "description": "The name of the thing calling this tool (openai"
+          },
+          "content": {
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "The title to submit"
+              },
+              "description": {
+                "type": "string",
+                "description": "The description to submit"
+              }
+            },
+            "type": "object",
+            "required": [
+              "title",
+              "description"
+            ],
+            "description": "The content of the message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "submitter",
+          "content"
+        ]
+      }
+    },
+    {
+      "name": "list_images",
+      "description": "List images",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "submitter": {
+            "type": "string",
+            "description": "The name of the thing calling this tool (openai"
+          },
+          "content": {
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "The title to submit"
+              },
+              "description": {
+                "type": "string",
+                "description": "The description to submit"
+              }
+            },
+            "type": "object",
+            "required": [
+              "title",
+              "description"
+            ],
+            "description": "The content of the message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "submitter",
+          "content"
+        ]
+      }
+    }
+  ]
+}

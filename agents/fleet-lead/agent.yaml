@@ -1,0 +1,16 @@
+id: fleet-lead
+title: Fleet lead agent
+persona: lead
+default_servers:
+  - substrate
+skills:
+  - substrate-dispatch-skill
+  - mcp-boundary-guard
+  - github-fork-policy
+  - language-tier-picker
+  - catalog-wiring
+  - phenodag-claim
+  - substrate-vs-servers
+env:
+  SUBSTRATE_AGENT_NAME: lead
+  SUBSTRATE_TEAM_ID: default

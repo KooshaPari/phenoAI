@@ -1,0 +1,401 @@
+# PhenoMCPServers catalog — single source of truth
+# Version bumps when any entry changes shape or wiring.
+registry_version: "1.4.1"
+
+# Language tiers & roles: docs/LANGUAGE-TIERS-AND-ROLES.md
+# Tier 0: Rust/Zig/Mojo core | Tier 1: Go edges (justified) | Tier 2: Py3.14/uv, Bun, TS7, C#, Java
+# Anti-pattern: language umbrella SDKs (phenotype-rust-sdk, phenotype-go-sdk) — use domain roles below.
+# Boundary audit (issue #7): phenotype-go-sdk is RETIRED. Go survives only at tier-1 edges.
+
+language_policy:
+  tier_0: [rust, zig, mojo]
+  tier_1: [go]
+  tier_2: [python, typescript, csharp, java]
+  tier_3: [shell, pwsh]
+  python_toolchain: "3.14+; uv"
+  typescript_toolchain: "TS 7 preview; Bun where applicable"
+  parallel_workstreams:
+    - phenofastmcp-py
+    - phenofastmcp-go
+    - phenofastmcp-rust
+    - phenomcp-servers
+    - substrate-runtime
+    - phenofastmcp-zig     # future: start after rmcp superset stabilizes
+    - phenofastmcp-mojo    # future: start after rmcp superset stabilizes
+    - phenofastmcp-ts      # planned: TS7 + Bun HexaKit binding (sd-ts7)
+
+# Retired anti-patterns — language umbrella SDKs (issue #7).
+# Do not re-introduce these. They were language buckets, not domain roles,
+# and they duplicated the per-domain forks listed under `framework:` below.
+retired_anti_patterns:
+  - id: phenotype-go-sdk
+    status: retired
+    retired_on: "2026-06-17"
+    ticket: "#7"
+    rationale: >
+      Generic Go catch-all that consolidated PlatformKit, DevHex, and McpKit.
+      Conflicts with the tier model: Go is tier-1 edges only, not a second
+      core and not a place for cross-domain library dumping.
+    replacement:
+      - KooshaPari/PhenoFastMCP-go   # tier-1 MCP framework fork
+      - KooshaPari/MCPForge          # tier-1 LSP / HTTP MCP edge
+      - KooshaPari/phenotype-ops-mcp # tier-1 ops / unikernel edge
+    successor_role: edge-gateway
+    successor_tier: 1
+  - id: phenotype-rust-sdk
+    status: retired
+    retired_on: "2026-06-17"
+    ticket: "#7"
+    rationale: >
+      Generic Rust catch-all — same anti-pattern as phenotype-go-sdk.
+      Rust belongs to tier-0 domain forks, not a language bucket.
+    replacement:
+      - KooshaPari/PhenoFastMCP-rust # tier-0 MCP framework fork (fastmcp_rust)
+      - KooshaPari/PhenoRMCP         # tier-0 MCP spec SDK (rmcp)
+      - KooshaPari/substrate         # tier-0 fleet runtime (driver-* crates)
+      - KooshaPari/phenoUtils       # tier-0 hex ports, crypto, fs
+    successor_role: mcp-framework
+    successor_tier: 0
+
+# Go placement inventory.
+# Deprecated Go repos remain in server wiring as deprecated entries below.
+go_tier1_inventory:
+  - id: phenofastmcp-go
+    repo: https://github.com/KooshaPari/PhenoFastMCP-go
+    role: mcp-framework
+    tier: 1
+    justification: "Fork of mark3labs/mcp-go; upstream is Go-native. Provides HTTP/SSE MCP edge servers."
+  - id: substrate-go-client
+    repo: null
+    role: edge-gateway
+    tier: 1
+    justification: "Thin Go client for substrate HTTP API. Reuses phenofastmcp-go transport; no domain logic."
+
+framework:
+  rust:
+    repo: https://github.com/KooshaPari/PhenoFastMCP-rust
+    upstream: https://github.com/Dicklesworthstone/fastmcp_rust
+    fork_parent: Dicklesworthstone/fastmcp_rust
+    tier: 0
+    role: mcp-framework
+    parallel_lane: phenofastmcp-rust
+    note: fastmcp-equivalent Rust framework; spec SDK is PhenoRMCP
+  rmcp:
+    repo: https://github.com/KooshaPari/PhenoRMCP
+    upstream: https://github.com/modelcontextprotocol/rust-sdk
+    fork_parent: modelcontextprotocol/rust-sdk
+    tier: 0
+    role: mcp-spec-sdk
+    note: official rmcp — not PhenoFastMCP branding
+  go:
+    repo: https://github.com/KooshaPari/PhenoFastMCP-go
+    upstream: https://github.com/mark3labs/mcp-go
+    fork_parent: mark3labs/mcp-go
+    tier: 1
+    role: mcp-framework
+    parallel_lane: phenofastmcp-go
+    justification: HTTP/SSE MCP edge servers; upstream is Go-native (MCPForge)
+  python:
+    repo: https://github.com/KooshaPari/PhenoFastMCP
+    upstream: https://github.com/PrefectHQ/fastmcp
+    fork_parent: PrefectHQ/fastmcp
+    baseline_tag: v3.4.2
+    tier: 2
+    role: mcp-framework
+    parallel_lane: phenofastmcp-py
+    toolchain: "py3.14; uv"
+    note: fastmcp binding tier — not protocol core long-term
+  zig:
+    repo: https://github.com/KooshaPari/PhenoFastMCP-zig
+    upstream: https://github.com/modelcontextprotocol/rust-sdk
+    fork_parent: modelcontextprotocol/rust-sdk
+    tier: 0
+    role: mcp-framework
+    parallel_lane: phenofastmcp-zig
+    status: future
+    start_trigger: rmcp superset stabilizes (see issue #8)
+    note: tier-0 parallel lane; same fork-parent rules as rust; NOT in phenotype-rust-sdk bucket
+  mojo:
+    repo: https://github.com/KooshaPari/PhenoFastMCP-mojo
+    upstream: https://github.com/modelcontextprotocol/rust-sdk
+    fork_parent: modelcontextprotocol/rust-sdk
+    tier: 0
+    role: mcp-framework
+    parallel_lane: phenofastmcp-mojo
+    status: future
+    start_trigger: rmcp superset stabilizes (see issue #8)
+    note: tier-0 parallel lane; same fork-parent rules as rust; NOT in phenotype-rust-sdk bucket
+  typescript:
+    repo: https://github.com/KooshaPari/PhenoFastMCP-ts
+    upstream: https://github.com/modelcontextprotocol/typescript-sdk
+    fork_parent: modelcontextprotocol/typescript-sdk
+    tier: 2
+    role: mcp-framework
+    parallel_lane: phenofastmcp-ts
+    status: planned
+    toolchain: "TS 7 preview; Bun"
+    start_trigger: MCP TS SDK v2 stable + HexaKit mcp-server-ts7 validates (sd-ts7)
+    note: tier-2 binding lane; IDE/plugin wiring; NOT protocol core
+
+templates:
+  hexakit:
+    mcp-server:
+      path: templates/mcp-server
+      runtime: python
+      framework: fastmcp
+      status: active
+    mcp-server-ts7:
+      path: templates/mcp-server-ts7
+      runtime: bun
+      framework: "@modelcontextprotocol/server"
+      status: planned
+      spike: docs/spikes/ts7-hexakit-binding.md
+
+servers:
+  - id: substrate
+    title: Substrate fleet MCP
+    description: dispatch, plan, route over HTTP plus team mailbox tools
+    package: servers/substrate
+    language: python
+    framework: fastmcp
+    transport: stdio
+    entry:
+      module: substrate_server
+      callable: mcp.run
+    env:
+      - SUBSTRATE_HTTP_URL
+      - SUBSTRATE_HTTP_AUTH_TOKEN
+      - SUBSTRATE_TEAM_ID
+      - SUBSTRATE_AGENT_NAME
+      - SUBSTRATE_DB
+    status: active
+
+  - id: substrate-dispatch
+    title: Substrate OmniRoute tier dispatch
+    description: Per-tier dispatch tools delegating to OmniRoute
+    package: servers/substrate
+    language: python
+    framework: fastmcp
+    transport: stdio
+    entry:
+      module: dispatch_server
+      callable: main
+    env:
+      - OMNIROUTE_URL
+      - LOG_LEVEL
+    status: active
+
+  - id: mcpforge
+    title: MCPForge LSP server
+    description: Semantic code tools via language servers
+    package: servers/external/mcpforge
+    repo: https://github.com/KooshaPari/MCPForge
+    language: go
+    transport: stdio
+    entry:
+      module: main
+      callable: main
+    build: go build -o bin/mcpforge .
+    status: deprecated
+
+  - id: ops-mcp
+    title: NanoVM ops MCP
+    description: Unikernel instance and image lifecycle
+    package: servers/external/ops-mcp
+    repo: https://github.com/KooshaPari/phenotype-ops-mcp
+    language: go
+    transport: stdio
+    entry:
+      module: main
+      callable: main
+    build: go build -o bin/ops-mcp .
+    status: deprecated
+  - id: forge3-bridge
+    title: forge3-bridge MCP
+    description: >
+      Bridge to the Forge Agent SDK (forge3). Wraps the forge3 JSON-RPC 2.0
+      surface (stdio or ws://127.0.0.1:9753) as 15 MCP tools: info / methods
+      / tools / extensions / models / agents / commands + raw RPC passthrough
+      + shell / search / read / write / patch / skill_search helpers + a
+      transport-health doctor.
+    package: servers/forge3-bridge
+    language: python
+    framework: fastmcp
+    transport: stdio
+    tier: 2
+    role: mcp-implementation
+    entry:
+      module: forge3_bridge_server
+      callable: main
+    env:
+      - FORGE3_BIN
+      - FORGE3_WS
+      - FORGE3_TRANSPORT
+    requires_binaries:
+      - forge3
+    optional_binaries:
+      - forge3-ctl   # builds at install time from bin/forge3-ctl-src/
+    status: active
+    notes:
+      - "id MUST be a string UUID; integer ids silently fail on WebSocket"
+      - "params for no-arg methods MUST be omitted/null; {} returns 'expected unit'"
+      - "WS daemon on :9753 dies if TCP probes close mid-handshake; use a real WS handshake"
+
+  - id: pheno-org
+    title: Pheno-org MCP server
+    description: Native PhenoMCPServers FastMCP server for governance, agent, knowledge, policy, session, and workflow tools
+    package: servers/pheno-org
+    language: python
+    framework: fastmcp
+    transport: stdio
+    entry:
+      module: pheno_org_server
+      callable: mcp.run
+    env:
+      - PARPOURA_BASE_URL
+    status: active
+
+  - id: agileplus-mcp-intent
+    title: AgilePlus intent graph MCP
+    description: Rule-based prompt-to-intent-graph MCP tool and HTTP API (Rust)
+    repo: https://github.com/KooshaPari/AgilePlus
+    package: crates/agileplus-mcp-intent
+    language: rust
+    framework: rmcp
+    transport: stdio
+    entry:
+      module: agileplus-mcp-intent
+      callable: mcp
+    tier: 0
+    role: mcp-implementation
+    status: pointer
+    note: Monorepo path AgilePlus/crates/agileplus-mcp-intent; audit docs/mcp/INTEGRATION.md
+
+  - id: agileplus-mcp
+    title: AgilePlus FastMCP bridge
+    description: Python FastMCP bridge from LLM tools to AgilePlus gRPC/API (planned)
+    repo: https://github.com/KooshaPari/AgilePlus
+    package: agileplus-mcp
+    language: python
+    framework: fastmcp
+    transport: stdio
+    tier: 2
+    role: mcp-implementation
+    status: pointer
+    note: Stub only — no pyproject.toml or server entry yet; see AgilePlus/docs/mcp/INTEGRATION.md
+
+skills:
+  - id: substrate-dispatch-skill
+    title: Substrate dispatch skill
+    description: Invoke substrate_dispatch and substrate_plan from agents
+    path: skills/substrate-dispatch
+    requires_servers:
+      - substrate
+    status: template
+
+  - id: mcp-boundary-guard
+    title: MCP boundary guard
+    description: ADR-017 pre-flight; framework vs runtime vs implementations; Rust fork selection
+    path: skills/mcp-boundary-guard
+    adr: ADR-017
+    status: active
+
+  - id: github-fork-policy
+    title: GitHub fork policy
+    description: gh repo fork only; never mirror-to-empty; verify fork parent
+    path: skills/github-fork-policy
+    adr: ADR-018
+    status: active
+
+  - id: language-tier-picker
+    title: Language tier picker
+    description: ADR-017 tier 0-3 placement for MCP code
+    path: skills/language-tier-picker
+    adr: ADR-017
+    status: active
+
+  - id: catalog-wiring
+    title: Catalog wiring
+    description: registry.yaml, plugins, and agent bundle sync
+    path: skills/catalog-wiring
+    status: active
+
+  - id: phenodag-claim
+    title: Phenodag claim discipline
+    description: pick/claim/done without duplicate parallel lanes
+    path: skills/phenodag-claim
+    status: active
+
+  - id: substrate-vs-servers
+    title: Substrate vs servers boundary
+    description: ADR-019 runtime vs PhenoMCPServers SSOT placement
+    path: skills/substrate-vs-servers
+    adr: ADR-019
+    status: active
+
+  - id: forge3-bridge-skill
+    title: forge3-bridge skill
+    description: >
+      Bridge MCP clients (Codex, Claude Desktop, Cursor) to the local Forge
+      Agent SDK (forge3) JSON-RPC surface. 15 tools + raw RPC pass-through +
+      transport doctor. Installed as a dotfile into ~/.claude/skills and
+      ~/.codex/skills via `forge3-ctl install`.
+    path: skills/forge3-bridge
+    requires_servers:
+      - forge3-bridge
+    requires_binaries:
+      - forge3
+      - forge3-ctl
+    permissions:
+      - network-localhost
+    triggers:
+      - forge3
+      - forge daemon
+      - rpc.discover
+      - agent list
+      - tool list
+      - model list
+      - json-rpc over websocket
+    install:
+      type: dotfile
+      paths:
+        - ~/.claude/skills/forge3-bridge/
+        - ~/.codex/skills/forge3-bridge/
+        - ~/bin/forge3-cli
+        - ~/bin/forge3-mcp
+        - ~/bin/forge3-ctl
+    status: active
+
+  - id: hermes-tweet-signal
+    title: Hermes Tweet signal skill
+    description: Read-only X/Twitter signal briefs through Hermes Tweet plugin discovery and read tools
+    path: skills/hermes-tweet-signal
+    status: active
+
+plugins:
+  - id: phenotype-mcp-bundle
+    title: Phenotype default MCP bundle
+    description: Wires substrate + org servers for Cursor/Claude clients
+    path: plugins/phenotype-bundle
+    servers:
+      - substrate
+      - substrate-dispatch
+      - pheno-org
+    status: template
+
+agents:
+  - id: fleet-lead
+    title: Fleet lead agent
+    description: Lead agent with team mailbox and dispatch tools
+    path: agents/fleet-lead
+    skills:
+      - substrate-dispatch-skill
+      - mcp-boundary-guard
+      - github-fork-policy
+      - language-tier-picker
+      - catalog-wiring
+      - phenodag-claim
+      - substrate-vs-servers
+    servers:
+      - substrate
+    status: template

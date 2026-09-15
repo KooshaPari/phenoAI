@@ -1,77 +1,45 @@
-# Eidolon Architecture
+# Architecture
 
-## What It Is
+## Overview
+- PhenoMCP is a multi-language MCP-oriented workspace with Rust, Go, Python, and TypeScript code.
+- The workspace provides search and storage-backed services with shared runtime and bindings.
+- This document is a skeleton for the repo's component boundaries and data movement.
 
-Cross-platform automation SDK for desktop, mobile, and sandbox environments. Unified `VirtualStage` trait for screenshot capture, pointer/text input, and event recording across macOS (real), Windows/Linux (stubs), iOS/Android (stubs), and Docker/nanoVMs/KVM (feature-gated).
+## Components
+## crates/pheno-meilisearch
+- Rust crate for Meilisearch-backed capabilities.
 
-## Directory Layout
+## crates/pheno-qdrant
+- Rust crate for Qdrant-backed capabilities.
 
+## crates/phenotype-surrealdb
+- Rust crate for SurrealDB-backed capabilities.
+
+## go
+- Go packages for supporting services, adapters, or command surfaces.
+
+## python
+- Python support code and automation entrypoints.
+
+## ts
+- TypeScript integration, client, or documentation-facing assets.
+
+## Data flow
+```text
+client or tool request -> binding layer -> storage/search crate -> external backend or service
 ```
-Eidolon/
-├── Cargo.toml                        # Workspace (5 crates)
-├── crates/
-│   ├── phenotype-error-core/         # Shared error types
-│   ├── eidolon-core/                 # Core traits + types
-│   │   └── src/
-│   │       ├── virtual_stage.rs      # VirtualStage unified trait
-│   │       ├── traits.rs             # DesktopAutomator, MobileAutomator, SandboxAutomator
-│   │       ├── security.rs           # exec cmd + sandbox ID validation
-│   │       ├── event.rs              # AutomationEvent, EventType, Platform
-│   │       └── stage_registry.rs     # Named stage lookup
-│   ├── eidolon-desktop/              # Desktop automation
-│   │   └── src/ → macos.rs (real), windows.rs, linux.rs (stubs), recording/, security_hooks.rs
-│   ├── eidolon-mobile/               # Mobile automation
-│   │   └── src/ → ios/ (XCTest stub), android/ (UiAutomator stub), discovery.rs
-│   └── eidolon-sandbox/              # Container/VM automation
-│       └── src/ → docker/ (bollard), nanovm/, kvm/ (firecracker), unikernel/, audit.rs, enforcement/
-└── docs/ → EXTRACTION_PLAN.md, architecture/
-```
 
-## Key Trait: VirtualStage
+## Key invariants
+- Keep backend-specific logic isolated inside the relevant crate.
+- Preserve a clear separation between bindings and storage providers.
+- Treat workspace-level contracts as the source of truth for external callers.
 
-Consumers hold `Arc<dyn VirtualStage>` and call five required methods against any platform:
+## Cross-cutting concerns (config, telemetry, errors)
+- Config: define backend endpoints and runtime options centrally.
+- Telemetry: keep logging and tracing consistent across language boundaries.
+- Errors: translate backend failures into stable workspace-level error shapes.
 
-| Method | Purpose |
-|---|---|
-| `get_viewport()` | Current display dimensions + DPR + orientation |
-| `screenshot(path)` | Capture frame to disk (PNG) |
-| `pointer(event)` | Dispatch mouse/tap event |
-| `text(event)` | Dispatch keystroke/paste/IME event |
-| `record_event(event)` | Record event for audit/playback |
-
-Sub-traits: `MobileStage` (tap/swipe/input_text), `SandboxStage` (start/stop/exec/resource_usage).
-
-## Platform Support
-
-| Platform | Crate | Status |
-|---|---|---|
-| macOS | `eidolon-desktop` (Core Graphics) | Real implementation |
-| Windows / Linux | `eidolon-desktop` | Fail-loud stub |
-| iOS / Android | `eidolon-mobile` | Stub |
-| Docker | `eidolon-sandbox` (bollard) | Feature-gated (`sandbox-docker`) |
-| nanoVM | `eidolon-sandbox` (ops CLI) | Feature-gated (`sandbox-nanovm`) |
-| KVM | `eidolon-sandbox` (firecracker) | Feature-gated (`sandbox-kvm`) |
-
-## Security
-
-- **exec command validation**: Rejects NUL bytes, newlines, shell metacharacters (`&&`, `||`, `|`, `>`, `<`, `$()`, backtick, `;`). Max 4096 bytes.
-- **sandbox ID validation**: ASCII alphanumeric + `-`, `_`, `.`. Max 64 bytes. Rejects leading `-`.
-- **Security gate**: `PolicySecurityGate` with capability allow-list + rate limiting.
-
-## Audit
-
-- **AuditEntry**: Structured append log (event type, timestamp, actor, details)
-- **Integrity chain**: Optional SHA-256 hash chain over entries
-- **Retention**: Age-based purge via `RetentionPolicy`
-- **Stores**: `MemoryAuditStore` (default), `FileAuditStore` (feature `sandbox-audit`)
-
-## Quick Start
-
-```bash
-cargo build
-cargo test
-# macOS desktop
-cargo build -p eidolon-desktop
-# Docker sandbox
-cargo build -p eidolon-sandbox --features sandbox-docker
-```
+## Future considerations
+- Expand the component map to the concrete package list as ownership settles.
+- Add sequence diagrams for query, indexing, and adapter flows.
+- Capture testing and deployment assumptions for each backend provider.

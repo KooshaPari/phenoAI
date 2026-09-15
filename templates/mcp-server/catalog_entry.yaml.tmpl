@@ -1,0 +1,45 @@
+# Catalog entries appended by `hexakit init mcp-server --name {{id}}`
+# (these are added under the existing servers / skills / plugins / agents lists)
+servers:
+  - id: {{id}}
+    title: {{title}}
+    description: {{description}}
+    package: servers/{{id}}
+    language: python
+    framework: {{framework}}
+    transport: {{transport}}
+    entry:
+      module: {{module}}
+      callable: mcp.run
+    env:
+{{env_list}}
+    status: template
+
+skills:
+  - id: {{id}}-skill
+    title: {{title}} skill
+    description: {{description}}
+    path: skills/{{id}}-skill
+    requires_servers:
+      - {{id}}
+    status: template
+
+plugins:
+  - id: {{id}}-bundle
+    title: {{title}} plugin bundle
+    description: {{description}}
+    path: plugins/{{id}}-bundle
+    servers:
+      - {{id}}
+    status: template
+
+agents:
+  - id: {{id}}-lead
+    title: {{title}} lead agent
+    description: {{description}}
+    path: agents/{{id}}-lead
+    skills:
+      - {{id}}-skill
+    servers:
+      - {{id}}
+    status: template

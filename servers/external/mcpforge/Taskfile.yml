@@ -1,0 +1,71 @@
+version: "3"
+
+vars:
+  BINARY: mcp-language-server
+  GO: go
+  TEST_PACKAGES: >-
+    ./cmd/...
+    ./internal/logging
+    ./internal/lsp
+    ./internal/protocol
+    ./internal/tools
+    ./internal/utilities
+    ./internal/watcher
+    ./tests
+  LINT_PACKAGES: . ./cmd/... ./internal/... ./tests
+
+tasks:
+  default:
+    desc: Build the Go binary
+    deps: [build]
+
+  build:
+    desc: Build the Go binary
+    cmds:
+      - "{{.GO}} build -o {{.BINARY}}"
+
+  test:
+    desc: Run local Go unit and smoke tests
+    cmds:
+      - "{{.GO}} test {{.TEST_PACKAGES}}"
+
+  lint:
+    desc: Run Go formatting and static analysis
+    cmds:
+      - |
+        unformatted="$(find . -path "./integrationtests" -prune -o \
+          -name "*.go" -print | xargs {{.GO}}fmt -l)"
+        test -z "$unformatted" || { printf '%s\n' "$unformatted"; exit 1; }
+      - "{{.GO}} vet {{.LINT_PACKAGES}}"
+      - "{{.GO}} tool staticcheck {{.LINT_PACKAGES}}"
+      - "{{.GO}} tool errcheck {{.LINT_PACKAGES}}"
+      - |
+        find . -path "./integrationtests" -prune -o \
+          -name "*.go" -print | xargs gopls check
+
+  clean:
+    desc: Remove generated artifacts and clear Go build/test cache entries
+    cmds:
+      - |
+        for attempt in 1 2 3; do
+          {{.GO}} clean -cache -testcache && exit 0
+          if test "$attempt" -eq 3; then
+            exit 1
+          fi
+          sleep 1
+        done
+      - task: clean:artifacts
+
+  clean:artifacts:
+    internal: true
+    cmds:
+      - find . -maxdepth 1 \( -name {{.BINARY}} -o -name coverage.out -o -name coverage.txt \) -delete
+      - |
+        if test -d integrationtests/test-output; then
+          find integrationtests/test-output -depth -mindepth 1 -delete
+          rmdir integrationtests/test-output
+        fi
+      - |
+        if test -d integrationtests/snapshots; then
+          find integrationtests/snapshots -name "*.snap.diff" -delete
+        fi

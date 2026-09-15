@@ -1,0 +1,10 @@
+---
+name: mcp-boundary-guard
+description: Select correct MCP repo layer and Rust fork parent before edits. Use when forking MCP frameworks, migrating servers, or placing MCP code.
+---
+
+# MCP boundary guard
+
+Read `skills/mcp-boundary-guard/SKILL.md` in PhenoMCPServers before any MCP polyrepo change.
+
+Mandatory: ADR-017 → registry.yaml → PHENO.md → phenodag claim if parallel work.

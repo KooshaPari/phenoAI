@@ -1,0 +1,8 @@
+id: phenotype-mcp-bundle
+title: Phenotype default MCP bundle
+path: plugins/phenotype-bundle
+manifest: mcp.json
+servers:
+  - substrate
+  - substrate-dispatch
+  - pheno-org

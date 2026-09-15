@@ -1,0 +1,8 @@
+---
+name: catalog-wiring
+description: Keep registry.yaml, plugins, and agents in sync. Use when editing catalog entries or MCP client bundles.
+---
+
+# Catalog wiring
+
+Read `skills/catalog-wiring/SKILL.md` before changing registry or bundle wiring.

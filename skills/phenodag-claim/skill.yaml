@@ -1,0 +1,8 @@
+---
+name: phenodag-claim
+description: Pick, claim, and complete phenodag tasks without duplicate parallel lanes. Use before multi-repo MCP work.
+---
+
+# Phenodag claim
+
+Read `skills/phenodag-claim/SKILL.md` before parallel fleet execution.

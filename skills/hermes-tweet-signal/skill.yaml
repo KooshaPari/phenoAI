@@ -1,0 +1,24 @@
+id: hermes-tweet-signal
+path: skills/hermes-tweet-signal
+entry: SKILL.md
+version: 0.1.0
+language: markdown
+permissions:
+  - network-public
+requires_env:
+  - XQUIK_API_KEY
+triggers:
+  - Hermes Tweet
+  - X/Twitter signal brief
+  - public tweet research
+  - product feedback on X
+  - launch reaction on X
+install:
+  type: dotfile
+  paths:
+    - ~/.claude/skills/hermes-tweet-signal/
+    - ~/.codex/skills/hermes-tweet-signal/
+description: >
+  Build read-only X/Twitter signal briefs through an installed Hermes Tweet
+  plugin. Uses endpoint discovery first, read-only routes second, and keeps
+  action routes behind explicit user approval.

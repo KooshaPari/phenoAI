@@ -1,0 +1,8 @@
+---
+name: substrate-vs-servers
+description: Place dispatch and MCP tools in substrate vs PhenoMCPServers correctly. Use for cheap-llm, runtime boundary, and server migrations.
+---
+
+# Substrate vs servers
+
+Read `skills/substrate-vs-servers/SKILL.md` before runtime or server placement changes.

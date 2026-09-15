@@ -1,0 +1,16 @@
+# Pre-built Rust binaries (build from bin/forge3-ctl-src/)
+bin/forge3-ctl
+
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# Editor / OS noise
+.DS_Store
+.vscode/
+.idea/

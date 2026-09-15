@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/KooshaPari/PhenoMCPServers/schemas/registry.schema.json",
+  "title": "PhenoMCPServers registry",
+  "type": "object",
+  "required": ["registry_version", "servers", "skills", "plugins", "agents"],
+  "properties": {
+    "registry_version": { "type": "string" },
+    "framework": { "type": "object" },
+    "retired_anti_patterns": {
+      "type": "array",
+      "description": "Language umbrella SDKs formally retired per LANGUAGE-TIERS-AND-ROLES.md; do not re-introduce.",
+      "items": {
+        "type": "object",
+        "required": ["id", "status", "rationale", "replacement"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "status": { "enum": ["retired", "deprecated", "merged"] },
+          "retired_on": { "type": "string", "format": "date" },
+          "ticket": { "type": "string" },
+          "rationale": { "type": "string", "minLength": 1 },
+          "replacement": { "type": "array", "items": { "type": "string" } },
+          "successor_role": { "type": "string" },
+          "successor_tier": { "type": "integer", "minimum": 0, "maximum": 3 }
+        }
+      }
+    },
+    "go_tier1_inventory": {
+      "type": "array",
+      "description": "Written justifications for every surviving tier-1 Go repo (Go placement rule).",
+      "items": {
+        "type": "object",
+        "required": ["id", "role", "tier", "justification"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "repo": { "type": ["string", "null"], "format": "uri" },
+          "role": {
+            "enum": [
+              "mcp-framework",
+              "mcp-implementation",
+              "fleet-runtime",
+              "rust-utilities",
+              "bootstrap",
+              "python-extras",
+              "edge-gateway",
+              "scripting"
+            ]
+          },
+          "tier": { "enum": [0, 1, 2, 3] },
+          "justification": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "servers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/server" }
+    },
+    "skills": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/skill" }
+    },
+    "plugins": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/plugin" }
+    },
+    "agents": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/agent" }
+    }
+  },
+  "$defs": {
+    "server": {
+      "type": "object",
+      "required": ["id", "title", "status"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "title": { "type": "string" },
+        "status": { "enum": ["active", "pointer", "deprecated", "template"] },
+        "package": { "type": "string" },
+        "repo": { "type": "string", "format": "uri" },
+        "transport": { "enum": ["stdio", "sse", "streamable-http"] }
+      }
+    },
+    "skill": {
+      "type": "object",
+      "required": ["id", "title", "path", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "path": { "type": "string" },
+        "requires_servers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "plugin": {
+      "type": "object",
+      "required": ["id", "title", "path", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "servers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "required": ["id", "title", "path", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "servers": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

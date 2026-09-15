@@ -1,0 +1,10 @@
+exclude:
+  paths:
+    - ".git/**"
+    - "target/**"
+    - "node_modules/**"
+    - "*.sum"
+    - "*.lock"
+include:
+  files:
+    - "**/*"

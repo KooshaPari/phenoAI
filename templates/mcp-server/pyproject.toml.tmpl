@@ -1,0 +1,14 @@
+[project]
+name = "phenomcp-server-{{id}}"
+version = "0.1.0"
+description = {{description|tojson}}
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=3.4.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["."]

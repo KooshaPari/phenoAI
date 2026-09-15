@@ -1,0 +1,14 @@
+# Bundled Rust binaries
+# The forge3-ctl binary is built on demand from forge3-ctl-src/.
+# Run: cd forge3-ctl-src && cargo build --release && cp target/release/forge3-ctl ../forge3-ctl
+#
+# If you DO want to ship a pre-built binary, uncomment below to commit it:
+# !forge3-ctl
+forge3-ctl
+*.d
+*.rlib
+*.so
+*.dylib
+*.exe
+*.pdb
+target/

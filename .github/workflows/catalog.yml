@@ -1,0 +1,48 @@
+name: catalog
+
+on:
+  pull_request:
+    paths:
+      - "catalog/**"
+      - "schemas/**"
+      - "plugins/**"
+      - "servers/**"
+      - "scripts/validate_*.py"
+      - "docs/**"
+      - "skills/**"
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Checkout substrate (driver-mcp sync)
+        uses: actions/checkout@v4
+        with:
+          repository: KooshaPari/substrate
+          path: substrate
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install validators
+        run: pip install pyyaml jsonschema pytest
+      - name: validate_catalog.py
+        run: python scripts/validate_catalog.py
+      - name: validate_fork_parents.py
+        run: python scripts/validate_fork_parents.py
+      - name: validate_stale_patterns.py
+        run: python scripts/validate_stale_patterns.py
+      - name: validate_bundle_wiring.py
+        run: python scripts/validate_bundle_wiring.py
+      - name: check_driver_mcp_sync.py
+        run: python substrate/scripts/check_driver_mcp_sync.py
+      - name: Install substrate server deps
+        run: pip install -r servers/substrate/requirements.txt
+      - name: Install pheno-org server deps
+        run: pip install -e "servers/pheno-org[dev]"
+      - name: pytest catalog + bundle + hexakit + substrate + pheno-org
+        run: pytest tests/test_catalog_validation.py tests/test_bundle_wiring.py tests/test_hexakit_template.py tests/test_mcp_server_ts7_template.py servers/substrate servers/pheno-org/tests -q

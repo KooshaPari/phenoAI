@@ -1,0 +1,26 @@
+[project]
+name = "phenomcp-servers-workspace"
+version = "0.1.0"
+description = "PhenoMCPServers catalog workspace"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+dev = ["pyyaml>=6.0", "jsonschema>=4.0", "pytest>=8.0"]
+
+[tool.pytest.ini_options]
+# Mirror what .github/workflows/catalog.yml runs on line 47 so a
+# developer's local `pytest` invocation finds the same set of tests
+# the catalog CI exercises. The audit (2026-09-05) flagged "test
+# inclusion" as a defect: the previous `testpaths = ["servers/substrate"]`
+# silently excluded `tests/test_catalog_validation.py`,
+# `tests/test_bundle_wiring.py`, `tests/test_hexakit_template.py`,
+# `tests/test_mcp_server_ts7_template.py`, the new
+# `tests/test_tool_discovery_and_invalid_call.py`, and
+# `servers/pheno-org/tests/`. Catalog CI saw all of them; local
+# `pytest` saw only substrate. This list reconciles the two.
+testpaths = [
+    "tests",
+    "servers/substrate",
+    "servers/pheno-org/tests",
+]
+pythonpath = ["."]

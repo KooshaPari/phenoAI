@@ -1,0 +1,17 @@
+[project]
+name = "phenomcp-server-pheno-org"
+version = "0.1.0"
+description = "Pheno-org MCP server (governance, agent, knowledge, policy, session, workflow tools) -- migrated from PhenoMCP"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=3.4.2",
+    "httpx",
+]
+# Pin to PhenoFastMCP when published:
+# phenofastmcp @ git+https://github.com/KooshaPari/PhenoFastMCP.git@v3.4.2
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

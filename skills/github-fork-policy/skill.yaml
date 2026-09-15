@@ -1,0 +1,8 @@
+---
+name: github-fork-policy
+description: Use gh repo fork for Phenotype MCP upstream forks. Never mirror-to-empty. Use when creating or re-parenting PhenoFastMCP forks.
+---
+
+# GitHub fork policy
+
+See `skills/github-fork-policy/SKILL.md` in PhenoMCPServers.

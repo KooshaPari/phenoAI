@@ -1,0 +1,20 @@
+[project]
+name = "phenomcp-server-forge3-bridge"
+version = "0.1.0"
+description = "forge3-bridge — MCP bridge to the Forge Agent SDK (forge3). Wraps the forge3 JSON-RPC surface (stdio or ws://127.0.0.1:9753) as MCP tools."
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=3.4.2",
+    "websockets>=12.0",
+]
+# Pin to PhenoFastMCP when published:
+# phenofastmcp @ git+https://github.com/KooshaPari/PhenoFastMCP.git@v3.4.2
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+forge3-bridge-mcp = "forge3_bridge_server:main"
+
+[tool.pytest.ini_options]
+testpaths = ["."]

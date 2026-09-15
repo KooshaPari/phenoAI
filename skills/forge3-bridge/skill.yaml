@@ -1,0 +1,32 @@
+id: forge3-bridge
+path: skills/forge3-bridge
+entry: SKILL.md
+version: 0.1.0
+language: markdown
+requires_servers:
+  - forge3-bridge
+requires_binaries:
+  - forge3
+  - forge3-ctl
+permissions:
+  - network-localhost
+triggers:
+  - forge3
+  - forge daemon
+  - rpc.discover
+  - agent list
+  - tool list
+  - model list
+  - forge3-bridge
+  - json-rpc over websocket
+install:
+  type: dotfile
+  paths:
+    - ~/.claude/skills/forge3-bridge/
+    - ~/.codex/skills/forge3-bridge/
+    - ~/bin/forge3-cli
+    - ~/bin/forge3-mcp
+    - ~/bin/forge3-ctl
+description: >
+  Bridge MCP clients (Codex, Claude Desktop, Cursor) to the local Forge Agent SDK
+  (forge3) JSON-RPC surface. 15 tools + raw RPC pass-through + transport doctor.

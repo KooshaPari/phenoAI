@@ -1,0 +1,8 @@
+---
+name: language-tier-picker
+description: Choose correct language tier and repo layer for new MCP code. Use when adding servers, frameworks, or bindings.
+---
+
+# Language tier picker
+
+Read `skills/language-tier-picker/SKILL.md` before placing code in a language-specific repo.

@@ -1,0 +1,46 @@
+# Catalog entries appended by `hexakit init mcp-server-ts7 --id {{id}}`
+# PLANNED STUB — defer until MCP TS SDK v2 + validate_catalog CI (sd-ts7).
+servers:
+  - id: {{id}}
+    title: {{title}}
+    description: {{description}}
+    package: servers/{{id}}
+    language: typescript
+    framework: "@modelcontextprotocol/server"
+    transport: {{transport}}
+    entry:
+      module: src/index.ts
+      callable: main
+    build: bun run src/index.ts
+    env:
+{{env_list}}
+    status: template
+
+skills:
+  - id: {{id}}-skill
+    title: {{title}} skill
+    description: {{description}}
+    path: skills/{{id}}-skill
+    requires_servers:
+      - {{id}}
+    status: template
+
+plugins:
+  - id: {{id}}-bundle
+    title: {{title}} plugin bundle
+    description: {{description}}
+    path: plugins/{{id}}-bundle
+    servers:
+      - {{id}}
+    status: template
+
+agents:
+  - id: {{id}}-lead
+    title: {{title}} lead agent
+    description: {{description}}
+    path: agents/{{id}}-lead
+    skills:
+      - {{id}}-skill
+    servers:
+      - {{id}}
+    status: template
