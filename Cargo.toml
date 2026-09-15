@@ -1,79 +1,30 @@
 # PhenoAI - AI/LLM Agent Workspace
-#
-# Contains AI-related crates:
-# - llm-router: LLM routing — substrate::omniroute-adapter shim
-#                (the actual routing logic lives in KooshaPari/substrate;
-#                 phenoAI delegates to it via a Cargo git dep)
-# - mcp-server: MCP protocol server
-# - pheno-embedding: Embedding pipeline
-#
-# Eidolon agent runtime (migrated from KooshaPari/zz-merge-unk-Eidolon):
-# - eidolon-core: Core agent runtime
-# - eidolon-desktop: Desktop GUI
-# - eidolon-mobile: iOS/Android mobile agent
-# - eidolon-sandbox: Sandbox isolation (Docker/nanoVM/KVM/unikernel)
-# - phenotype-error-core: Shared error types
-# - phenotype-router: A2A router decision layer
-# - nexus: Service discovery
-# - sidekick-*: Agent messaging, observability, dispatch
-# - pheno-compose-*: Deployment composition, plugins, ports
-# - pheno-config: Configuration loading
-# - phench: Python benchmarking CLI (non-Cargo)
 [workspace]
 members = [
-    # === Core AI crates ===
     "crates/llm-router",
     "crates/mcp-server",
     "crates/pheno-embedding",
-    # Eidolon agent runtime (absorbed from KooshaPari/zz-merge-unk-Eidolon)
-    "crates/phenotype-error-core",
     "crates/eidolon-core",
     "crates/eidolon-desktop",
     "crates/eidolon-mobile",
     "crates/eidolon-sandbox",
-
-    # === Router + Service Discovery ===
+    "crates/phenotype-error-core",
     "crates/phenotype-router",
     "crates/nexus",
-
-    # === Sidekick (agent utilities) ===
     "crates/sidekick-messaging",
     "crates/sidekick-obs-core",
     "crates/sidekick-observability",
-
-    # === PhenoCompose (deployment composition) ===
-    "crates/pheno-compose-agentctl",
-    "crates/pheno-compose-apple-container-adapter",
-    "crates/pheno-compose-i18n",
-    "crates/pheno-compose-pheno-config",
-    "crates/pheno-compose-phenocompose-cli",
-    "crates/pheno-compose-plugin-api",
-    "crates/pheno-compose-plugin-sample",
-    "crates/pheno-compose-wslc-adapter",
-    "crates/pheno-compose-port-composer",
-    "crates/pheno-compose-port-di",
-    "crates/pheno-compose-port-publisher",
-    "crates/pheno-compose-port-runtime",
-    "crates/pheno-compose-port-secret",
-    "crates/pheno-compose-port-types",
-    "crates/pheno-compose-secret-file-adapter",
-
-    # === Gateway (PR #105) ===
     "crates/gateway",
     "crates/pheno-capacity",
+    "crates/argis-extensions",
 ]
 resolver = "3"
 
 [workspace.package]
-version = "0.0.1"
-edition = "2021"
-authors = ["Phenotype Team"]
 license = "MIT OR Apache-2.0"
 rust-version = "1.75"
-repository = "https://github.com/KooshaPari/phenoAI"
 
 [workspace.dependencies]
-# --- Shared dependencies ---
 tokio = { version = "1.44", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -81,30 +32,4 @@ thiserror = "2.0"
 anyhow = "1.0"
 tracing = "0.1"
 async-trait = "0.1"
-
-# --- phenoAI-specific ---
-# Substrate superset — single source of truth for routing logic.
-# phenoAI/llm-router re-exports substrate::omniroute-adapter as its public
-# API and does NOT reimplement routing locally. This keeps the Python and
-# Rust stacks in sync: any routing bug fix in substrate propagates here
-# via `cargo update -p substrate`.
 substrate = { git = "https://github.com/KooshaPari/substrate", branch = "main" }
-
-# --- Eidolon agent runtime dependencies (from KooshaPari/zz-merge-unk-Eidolon) ---
-phenotype-error-core = { path = "crates/phenotype-error-core" }
-log = "0.4"
-uuid = { version = "1.6", features = ["v4", "serde"] }
-proptest = "1.6"
-bollard = "0.21"
-futures-util = "0.3"
-sha2 = "0.10"
-# nix: *nix API bindings (eidolon-sandbox namespaces → unshare/fork/mount).
-nix = { version = "0.31", default-features = false, features = ["sched", "signal", "mount", "fs"] }
-landlock = "0.4"
-seccompiler = "0.5"
-libc = "0.2"
-redis = { version = "1.4", default-features = false, features = ["tokio-comp", "connection-manager"] }
-ureq = { version = "2.12", default-features = false, features = ["json"] }
-aes-gcm = "0.10"
-argon2 = { version = "0.5", features = ["std", "password-hash"] }
-rand_core = { version = "0.6", features = ["getrandom"] }
