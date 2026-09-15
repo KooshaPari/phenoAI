@@ -1,6 +1,2 @@
-# Default owners — @KooshaPari reviews all changes
-*       @KooshaPari
-
-# Per-language drill-down (add more owners as team grows)
-*.rs    @KooshaPari
-*.toml  @KooshaPari
+# Default owners
+* @KooshaPari

@@ -1,45 +1,39 @@
-# Phenotype-org standard .gitignore — Rust
-# Source: https://github.com/KooshaPari/phenotype-tooling/blob/main/templates/gitignore-rust
-
-# Build artifacts
-/target/
+/target
+# Cargo.lock is committed: release-attestation.yml uses --locked for reproducibility.
+# Removing from gitignore (L19 audit fix). See docs/slsa.md.
 **/*.rs.bk
-Cargo.lock.bak
-
-# Editor
-.idea/
-.vscode/
-*.swp
-
-# OS
 .DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Repo-specific lines preserved from prior .gitignore:
-target/
-dist/
-build/
-*.o
-*.so
-*.dylib
-*.rlib
-*.rmeta
-node_modules/
-vendor/
-.venv/
-venv/
-.env
-.env.local
+*.swp
 *.swo
 *~
-npm-debug.log*
+.vscode/
+.idea/
+target/
+
+# ===== Standard auto-generated hygiene ignores (do not edit manually) =====
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+build/
 coverage/
-*.lcov
-.nyc_output/
-*.tmp
-*.bak
-*.orig
-.grade-reports/
+.pytest_cache/
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+# ===== End standard hygiene ignores =====
+
+# eidolon-desktop build artifacts
+crates/.eidolon-desktop
+
+# Appium UIA2 APKs (~17MB) — fetch via eidolon-fetch-uia2; do not commit binaries
+crates/eidolon-mobile/assets/uia2/*.apk
+crates/eidolon-mobile/assets/uia2/*.apk.partial
+.target-dxgi/
+.target-wayland/
+.target-pivot/
+.target-live-smokes/
+.target-linux-user-ns-smoke/

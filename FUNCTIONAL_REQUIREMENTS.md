@@ -1,28 +1,49 @@
-# Functional Requirements
+# Functional Requirements — Eidolon
 
-## Overview
-[Infer from README and codebase]
+Traces to: PRD.md epics E1–E7.
+ID format: FR-EIDOLON-{NNN}.
 
-## Requirements
+---
 
-| ID | Title | Description | Priority | Status |
-|----|-------|-------------|----------|--------|
-| FR-001 | [Core Feature 1] | [Description] | High | Backlog |
-| FR-002 | [Core Feature 2] | [Description] | High | Backlog |
-| FR-003 | [Feature 3] | [Description] | Medium | Backlog |
-| FR-004 | [Feature 4] | [Description] | Medium | Backlog |
-| FR-005 | [Feature 5] | [Description] | Low | Backlog |
-| FR-006 | [Feature 6] | [Description] | Low | Backlog |
-| FR-007 | [Feature 7] | [Description] | Low | Backlog |
+## Unified Device Automation API
 
-## Test Traceability
+**FR-EIDOLON-001**: The system SHALL provide a trait-based abstraction for device automation spanning desktop, mobile, and virtual environments.
+Traces to: E1.1
 
-| FR | Test File | Test Name | Status |
-|----|-----------|-----------|--------|
-| FR-001 | [TODO] | [TODO] | Pending |
-| FR-002 | [TODO] | [TODO] | Pending |
-| FR-003 | [TODO] | [TODO] | Pending |
-| FR-004 | [TODO] | [TODO] | Pending |
-| FR-005 | [TODO] | [TODO] | Pending |
-| FR-006 | [TODO] | [TODO] | Pending |
-| FR-007 | [TODO] | [TODO] | Pending |
+**FR-EIDOLON-002**: The system SHALL implement [Device] trait for macOS, Linux, Windows, iOS, and Android with standard methods: click, type, screenshot, wait_for_element.
+Traces to: E1.2
+
+**FR-EIDOLON-003**: All device implementations SHALL support element selection via accessibility tree, coordinates, and image recognition (OCR/template matching).
+Traces to: E1.3
+
+---
+
+## Sandboxed Environment Support
+
+**FR-EIDOLON-004**: The system SHALL support automation of sandboxed environments (Docker, VirtualBox, NanoVMs) via standardized control APIs.
+Traces to: E2.1
+
+**FR-EIDOLON-005**: The system SHALL provide a [SandboxDevice] adapter that converts control commands to container/VM-specific invocations.
+Traces to: E2.2
+
+---
+
+## Session Management
+
+**FR-EIDOLON-006**: The system SHALL maintain device sessions with lifecycle management (init, connect, authenticate, disconnect, cleanup).
+Traces to: E3.1
+
+**FR-EIDOLON-007**: The system SHALL support session isolation to enable concurrent automation workflows on the same device.
+Traces to: E3.2
+
+---
+
+## Trace & Test Guidance
+
+All tests MUST reference a Functional Requirement (FR):
+
+```rust
+// Traces to: FR-EIDOLON-NNN
+#[test]
+fn test_device_click_element() { ... }
+```

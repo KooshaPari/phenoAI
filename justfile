@@ -1,29 +1,48 @@
-# Phenotype-org shared justfile. Imported from phenotype-tooling/just/phenotype.just.
-# To override a recipe locally, redefine it after the import.
-import? "/Users/kooshapari/CodeProjects/Phenotype/repos/phenotype-tooling/just/phenotype.just"
+# Phenotype-org standard justfile
 
-# Lint with clippy (warnings as errors) AND fmt-check
-lint: fmt-check (just --justfile {{justfile_path()}} lint)
+default:
+    @just --list
 
-# Audit: cargo-deny + cargo-audit (combined)
-audit: (just --justfile {{justfile_path()}} deny) (just --justfile {{justfile_path()}} --justfile {{justfile_path()}} audit)
-# Grade targets (strictest checks — no caching)
-grade:
-    @echo "=== Running full grade ==="
-    ./grade.sh
+# Build workspace
+build:
+    cargo build --workspace
 
-grade-fast:
-    @echo "=== Running fast grade ==="
-    ./grade.sh --fast
+# Run tests
+test:
+    cargo test --workspace
 
-grade-json:
-    @echo "=== Running grade (JSON) ==="
-    ./grade.sh --json
+# Lint (clippy + fmt --check)
+lint:
+    cargo clippy --workspace -- -D warnings
+    cargo fmt --check
 
-grade-html:
-    @echo "=== Running grade (HTML) ==="
-    ./grade.sh --html
+# Format code
+fmt:
+    cargo fmt
 
-# Measure code coverage (SSOT: see grade.sh for the canonical command)
-coverage:
-    cargo llvm-cov --workspace --fail-under-lines 85
+# Security audits (cargo-deny + cargo-audit)
+audit:
+    cargo deny check
+    cargo audit
+
+# Find unused dependencies
+unused:
+    cargo machete
+
+# Full local CI sweep
+ci: lint test audit unused
+
+# Hermetic Wayland / USER ns smoke gates (macOS-safe default test run)
+smoke-hermetic:
+    export PATH="/bin:/usr/bin:/opt/homebrew/bin:{{env('HOME')}}/.cargo/bin:$$PATH" && \
+    cargo test -p eidolon-desktop --locked wayland_smoke_fails_loud_off_linux_or_without_wayland && \
+    cargo test -p eidolon-desktop --features desktop-linux --locked wayland_host_gate_matches_target
+
+# USER ns live smokes via privileged Docker (macOS or Linux hosts)
+smoke-user-ns-docker:
+    export PATH="/bin:/usr/bin:/opt/homebrew/bin:{{env('HOME')}}/.cargo/bin:$$PATH" && \
+    ./scripts/linux-user-ns-smoke-docker.sh
+
+# Generate docs
+docs:
+    cargo doc --no-deps --workspace

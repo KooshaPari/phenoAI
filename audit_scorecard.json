@@ -1,16 +1,16 @@
 {
-  "repo": "phenoAI",
+  "repo": "Eidolon",
   "overall": 52,
   "grade": "D+",
   "scores": {
     "L1 Architecture": 0,
-    "L2 Dev Loop": 10,
+    "L2 Dev Loop": 90,
     "L3 Agent Loop": 40,
-    "L4 Observability": 100,
+    "L4 Observability": 65,
     "L5 Security": 100,
     "L6 Performance": 25,
     "L7 Extensibility": 25,
-    "L8 Compliance": 100,
+    "L8 Compliance": 30,
     "L9 Complexity": 100,
     "L10 Type Safety": 50,
     "L11 Dependencies": 40,
@@ -32,7 +32,7 @@
     "L27 Infrastructure": 35,
     "L28 Cost Efficiency": 55,
     "L29 Monitoring": 30,
-    "L30 Onboarding": 45
+    "L30 Onboarding": 60
   },
   "details": {
     "L1 Architecture": {
@@ -40,15 +40,15 @@
       "raw": {}
     },
     "L2 Dev Loop": {
-      "details": "0 test files, 0 collected, 0 errors.",
+      "details": "2 test files, 1 collected, 0 errors.",
       "raw": {}
     },
     "L3 Agent Loop": {
-      "details": "CLI: MISSING. CI: 5 workflows.",
+      "details": "CLI: MISSING. CI: 13 workflows.",
       "raw": {}
     },
     "L4 Observability": {
-      "details": "Docs: 8/8 canonical files.",
+      "details": "Docs: 6/8 canonical files.",
       "raw": {}
     },
     "L5 Security": {
@@ -64,7 +64,7 @@
       "raw": {}
     },
     "L8 Compliance": {
-      "details": "Commits: 20. SSOT: True.",
+      "details": "Commits: 20. SSOT: False.",
       "raw": {}
     },
     "L9 Complexity": {
@@ -112,7 +112,7 @@
       "raw": {}
     },
     "L20 Config": {
-      "details": "Env refs: 0, Dotenv: 0, Pydantic: 0, Config files: 23.",
+      "details": "Env refs: 0, Dotenv: 0, Pydantic: 0, Config files: 30.",
       "raw": {}
     },
     "L21 Testing Depth": {
@@ -152,7 +152,7 @@
       "raw": {}
     },
     "L30 Onboarding": {
-      "details": "Makefile: 0, Devcontainer: 1, Setup: 0, README: 0.",
+      "details": "Makefile: 0, Devcontainer: 1, Setup: 0, README: 1.",
       "raw": {}
     }
   },
@@ -164,14 +164,17 @@
       "oversized_files": []
     },
     "tests": {
-      "total": 0,
-      "unit": 0,
+      "total": 2,
+      "unit": 1,
       "integration": 0,
       "e2e": 0,
-      "files": []
+      "files": [
+        "tests/__init__.py",
+        "tests/test_smoke.py"
+      ]
     },
     "collection": {
-      "collected": 0,
+      "collected": 1,
       "errors": 0,
       "timeout": false,
       "raw_output": ""
@@ -186,8 +189,8 @@
       "has_docs_dir": true,
       "files": {
         "README": true,
-        "ARCHITECTURE": true,
-        "SSOT": true,
+        "ARCHITECTURE": false,
+        "SSOT": false,
         "CLAUDE": true,
         "AGENTS": true,
         "CONTRIBUTING": true,
@@ -225,10 +228,18 @@
     "ci": {
       "has_github_actions": true,
       "workflow_files": [
-        "release.yml",
-        "deny.yml",
+        "quality-gate.yml",
+        "cargo-deny.yml",
+        "sbom-refresh.yml",
+        "trufflehog.yml",
+        "doc-links.yml",
+        "codeql.yml",
+        "cargo-machete.yml",
+        "fr-coverage.yml",
         "release-attestation.yml",
-        "audit.yml",
+        "cargo-audit.yml",
+        "ci.yml",
+        "cargo-semver-checks.yml",
         "scorecard.yml"
       ],
       "has_precommit": true
@@ -302,7 +313,7 @@
       "env_refs": 0,
       "dotenv_refs": 0,
       "pydantic_settings": 0,
-      "config_files": 23
+      "config_files": 30
     },
     "testing_depth": {
       "parametrize": 0,
@@ -362,7 +373,7 @@
       "makefile": 0,
       "devcontainer": 1,
       "setup_scripts": 0,
-      "readme_setup": 0
+      "readme_setup": 1
     },
     "all_ast": {
       "long_functions": 0,

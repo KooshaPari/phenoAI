@@ -1,0 +1,39 @@
+[collection]
+name = "Eidolon"
+version = "0.0.1"
+repo = "https://github.com/KooshaPari/Eidolon"
+description = "Unified trait-based device automation for desktop, mobile, and sandbox environments"
+authors = ["Phenotype Team"]
+license = "MIT OR Apache-2.0"
+theme = "device automation"
+
+[[crate]]
+name = "eidolon-core"
+version = "0.0.1"
+status = "alpha"
+stability = "0.x"
+description = "Traits, events, security validators, VirtualStage (no platform drivers)"
+
+[[crate]]
+name = "eidolon-desktop"
+version = "0.0.1"
+status = "alpha"
+stability = "0.x"
+description = "macOS real CGEvent/screencapture driver; Windows/Linux fail-loud stubs (T1)"
+source = "KDesktopVirt"
+
+[[crate]]
+name = "eidolon-mobile"
+version = "0.0.1"
+status = "stub"
+stability = "0.x"
+description = "UnsupportedPlatform MobileClient default; T1 CLI + Android gated input + Uia2Server + Appium-compatible session client (mobile-uia2) + optional Appium server probe (mobile-appium) + Appium Inspector launcher + local dashboard (mobile-appium-desktop) + pinned UIA2 APK cache/fetch + iOS XcuiBridge + in-tree XCUITest (EidolonXcuiHelper) + Rust eidolon-xcui-helper fallback; InstrumentDiscovery; in-memory DeviceManager; full Electron Appium Desktop fork out of scope"
+source = "kmobile"
+
+[[crate]]
+name = "eidolon-sandbox"
+version = "0.0.1"
+status = "stub"
+stability = "0.x"
+description = "Fail-loud SandboxClient + T2 Docker/nanoVM/KVM (sandbox-docker/nanovm/kvm); real PlayCuaDispatcher; virtual display manager (Xvfb live on Linux; VNC/Wayland fail-loud)"
+source = "PlayCua"

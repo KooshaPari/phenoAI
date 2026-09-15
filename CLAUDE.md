@@ -1,60 +1,75 @@
-# CLAUDE.md — phenoAI
+# Eidolon — Claude.md
 
-Extends parent governance. See the following for canonical definitions:
-- **Global baseline:** `~/.claude/CLAUDE.md`
-- **Phenotype root:** `/Users/kooshapari/CodeProjects/Phenotype/repos/CLAUDE.md`
-- **AgilePlus mandate:** `/Users/kooshapari/CodeProjects/Phenotype/repos/AgilePlus`
-- **Governance reference:** `AGENTS.md` (local, this repository)
+Device automation collection — trait-based core with platform-specific implementations.
 
-## Project Overview
+## Project
 
-- **Name:** phenoAI
-- **Description:** [Short description from README]
-- **Location:** [Relative path in repos]
-- **Language Stack:** [Primary languages]
-- **Status:** [Active/Archived/Experimental]
+- **Name**: Eidolon
+- **Description**: Unified trait-based device automation for desktop, mobile, and sandbox environments
+- **Language**: Rust (edition 2021)
+- **Location**: `/Users/kooshapari/CodeProjects/Phenotype/repos/Eidolon`
 
 ## AgilePlus Mandate
 
 All work MUST be tracked in AgilePlus:
-- CLI: `cd /Users/kooshapari/CodeProjects/Phenotype/repos/AgilePlus && agileplus <command>`
-- Check for existing specs before implementing
-- Create spec for new work: `agileplus specify --title "<feature>" --description "<desc>"`
-- No code without corresponding AgilePlus spec
+
+```bash
+cd /Users/kooshapari/CodeProjects/Phenotype/repos/AgilePlus
+agileplus specify --title "<feature>" --description "<desc>"
+agileplus status <feature-id> --wp <wp-id> --state <state>
+```
+
+**No code without corresponding AgilePlus spec.**
+
+## Architecture
+
+```
+crates/
+  eidolon-core/       # Traits, events, error types (no implementation)
+  eidolon-desktop/    # macOS, Windows, Linux (KDesktopVirt FFmpeg integration)
+  eidolon-mobile/     # iOS, Android (kmobile XCTest/UiAutomator)
+  eidolon-sandbox/    # Docker, nanoVMs, KVM (KVirtualStage patterns)
+```
+
+Each crate is independent; no inter-crate dependencies.
 
 ## Quality Checks
 
-From this repository root:
+From repository root:
+
 ```bash
-# Linting and formatting (adjust for project language)
+cargo check --workspace
+cargo test --workspace
 cargo clippy --workspace -- -D warnings
 cargo fmt --check
-
-# Testing
-cargo test --workspace
-
-# Documentation validation
-vale docs/
 ```
 
-## Worktree & Git Discipline
+## Trait Design
 
-- Feature work uses repo-specific worktrees: `repos/[PROJECT]-wtrees/<topic>/`
-- Canonical repo stays on `main` except during explicit merge operations
-- All feature branches are temporary; integrate via pull request or squash commit
-- See parent governance for non-destructive change protocol
+All implementations must satisfy three traits:
 
-## Cross-Project Reuse
+1. **DesktopAutomator** — pointer, text, screenshot, viewport
+2. **MobileAutomator** — tap, swipe, input, screenshot
+3. **SandboxAutomator** — start, stop, exec, resource monitoring
 
-During development, proactively identify code that is sharable across Phenotype repositories. Prefer extraction into existing shared modules; propose new shared packages when appropriate.
+See `crates/eidolon-core/src/traits.rs` for trait definitions.
 
-## Related Documents
+## Extraction Phases
 
-- `AGENTS.md` — Local agent contract and operating loop
-- `FUNCTIONAL_REQUIREMENTS.md` — Functional requirements and test traceability (if present)
-- `docs/worklogs/README.md` — Work audit and decision log
-- Parent `README.md` — Project-specific documentation
+See `docs/EXTRACTION_PLAN.md`:
 
----
+- **Phase 1**: kmobile + KVirtualStage (high confidence)
+- **Phase 2**: KDesktopVirt FFmpeg + security (medium confidence)
+- **Phase 3**: nanoVMs + namespace/cgroup (lower priority)
 
-For CI, scripting language hierarchy, and other policies, see the canonical sources listed above.
+## Governance
+
+- Extends Phenotype global governance: `~/.claude/CLAUDE.md`
+- Per-worktree rules: `repos/CLAUDE.md`
+- Scripting hierarchy: Rust first; no new shell
+
+## References
+
+- ADR-001: `docs/ADR-001-trait-based-core.md`
+- Extraction plan: `docs/EXTRACTION_PLAN.md`
+- AgilePlus: `/Users/kooshapari/CodeProjects/Phenotype/repos/AgilePlus`

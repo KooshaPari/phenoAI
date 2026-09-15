@@ -1,0 +1,52 @@
+# qgate configuration for Eidolon
+# Granular-recursive quality gate — 85% per module, recursively.
+# "1 via 2": gate stands RED first (tight grip), then backfill toward green.
+#
+# Reusable workflow:
+#   uses: KooshaPari/phenotype-tooling/.github/workflows/reusable/quality-gate.yml@main
+
+[coverage]
+# Threshold applied to every module recursively — no module hides behind the average.
+threshold = 85
+path = "coverage/lcov.info"
+format = "lcov"
+
+[checks]
+# Check categories and their N/A justifications.
+# All categories default to required unless explicitly marked not-applicable.
+
+# unit: cargo test --workspace (87 #[test] fns, inline + tests/ integration files)
+# integration: tests/test_sandbox.rs, tests/test_core.rs, tests/integration.rs — span crate boundaries
+# e2e: tests/test_sandbox.rs full_lifecycle (start→exec→stop over NullPlayCuaPort)
+# chaos: failure-injection tests in tests/test_sandbox.rs (shell injection, NUL byte, newline, oversized)
+# perf: sandbox exec latency + lifecycle overhead (NullPort, sub-millisecond; no wall-clock budget needed)
+# property: proptest-based round-trip in tests/test_sandbox.rs (exec cmd + sandbox id)
+# static: cargo clippy --all-targets -D warnings + cargo fmt --check + cargo deny check
+# security: cargo-audit (OSV vuln scan) + gitleaks (secret scanning, pre-commit)
+# mutation: cargo-mutants — configured, slow; target ≥75% mutation score
+
+# a11y: Eidolon is a headless automation library — no UI surface, not applicable.
+# macos-platform: MacOSClient (eidolon-desktop) calls Core Graphics APIs only available
+#   on macOS with Accessibility permissions — not testable in Linux CI. The helper
+#   methods (mouse_button_from_str, cg_point_from_input) are tested; the CG event
+#   dispatch path is N/A for CI.
+not_applicable = ["a11y", "macos-platform"]
+
+[mutation]
+# cargo-mutants — run locally or nightly; not in default CI (slow)
+# run: cargo mutants --workspace
+# target: ≥75% mutation score (per qgate bar)
+target_score = 75
+
+[security]
+# cargo-audit: OSV database vulnerability scan (run in CI cargo-audit.yml)
+# gitleaks: secret scanning (pre-commit + CI trufflehog.yml)
+sast_tool = "cargo-audit"
+min_severity = "high"
+
+[perf]
+# NullPlayCuaPort exec calls are sub-millisecond; sandbox full_lifecycle < 100ms.
+# No hard budget required for the null-port path; document for real backend wiring.
+# Real backends (Docker, Firecracker): start < 5000ms, exec < 1000ms expected.
+init_budget_ms = 5000
+exec_budget_ms = 1000

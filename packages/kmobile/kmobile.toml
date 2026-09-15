@@ -1,0 +1,14 @@
+[app]
+name = "kmobile"
+version = "0.1.0"
+description = "Mobile-next fork — native overlay + MCP bridge"
+
+[overlay]
+enabled = true
+bridge_crate = "kmobile-bridge"
+
+[telemetry]
+enabled = false
+
+[build]
+cargo_target_dir = "E:/fw-cargo-target/kmobile"

@@ -1,32 +1,26 @@
 ---
 name: Bug report
-about: Report a reproducible bug with version and release context
-title: "[bug]"
-labels: bug
+about: Report a bug
+title: "[BUG] "
+labels: ["bug"]
 ---
 
-## Summary
+## Description
 
-## Environment
+<!-- Clear description of what's broken -->
 
-- Version:
-- Branch:
-- Commit:
-- OS:
-
-## Expected behavior
-
-## Actual behavior
-
-## Reproduction steps
+## Reproduction
 
 1.
 2.
 3.
 
-## Release / versioning context
+## Expected vs actual
 
-- [ ] This bug is already reflected in `CHANGELOG.md` or should be added there.
-- [ ] I checked whether it is tied to a specific release version or manifest version.
+- Expected:
+- Actual:
 
-## Additional context
+## Environment
+
+- OS:
+- Version:

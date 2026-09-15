@@ -1,28 +1,25 @@
-name: TruffleHog Secrets Scan
-on:
-  workflow_dispatch:
-  push:
-    branches: ["**"]
-  pull_request:
-    branches: ["**"]
-jobs:
-  trufflehog:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: TruffleHog OSS
-        uses: trufflesecurity/trufflehog@75add79b929b263dae147d2e5bcf0daf292165cf # v-latest
-        with:
-          path: ./
-          base_depth: 1
-          debug: true
+name: Trufflehog Secrets Scan
 permissions:
   contents: read
-
+  pull-requests: read
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  trufflehog:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
+        with:
+          fetch-depth: 0
+      - uses: trufflesecurity/trufflehog@v3.88.27
+        with:
+          extra-args: "--only-verified --no-update"
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -1,19 +1,24 @@
 # Security Policy
 
-## Reporting
-Do not open public issues for security findings. Instead:
-- Email: security@kooshapari.com (or kooshapari@gmail.com until org mailbox exists)
-- GitHub private vulnerability reporting: https://github.com/KooshaPari/phenoAI/security/advisories/new
+## Reporting Vulnerabilities
 
-## Scope
-- Vulnerabilities in this repo's code, dependencies, or CI
-- Credential leaks
-- Supply-chain concerns (typosquatting, compromised deps)
+Please report security vulnerabilities via GitHub Security Advisories:
 
-## Response
-- Acknowledgment within 48h
-- Triage + severity call within 7d
-- Fix timeline per severity (CRITICAL: 7d, HIGH: 30d, MEDIUM/LOW: next release cycle)
+- Open a [private security advisory](../../security/advisories/new)
+- For sensitive issues, contact the repository owner directly
 
-## Disclosure
-Coordinated. We'll publish an advisory once a fix is available or after 90d if unfixed.
+## Supported Versions
+
+Latest `main` branch. Older versions are not supported.
+
+## Disclosure Policy
+
+We follow coordinated disclosure with reporters. Once an issue is patched, an advisory will be published.
+
+## Cargo-deny
+
+Rust projects in this org enforce a zero-advisory floor via `cargo-deny.yml` workflow (Monday cron + on-demand).
+
+## CodeQL
+
+Static analysis runs Tuesday weekly via `codeql-rust.yml` workflow.

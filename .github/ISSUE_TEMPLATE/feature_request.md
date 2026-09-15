@@ -1,28 +1,22 @@
 ---
 name: Feature request
-about: Propose a new feature with clear scope and release context
-title: "[feature]"
-labels: enhancement
+about: Suggest an enhancement
+title: "[FEAT] "
+labels: ["enhancement"]
 ---
 
-## Problem statement
+## Problem
+
+<!-- What pain point are you trying to solve? -->
 
 ## Proposed solution
 
-## Scope
+<!-- Your idea -->
 
-- What is in scope:
-- What is out of scope:
+## Alternatives considered
 
-## Impact
-
-- User value:
-- Risk:
-- Release impact:
-
-## Release / versioning context
-
-- [ ] This feature likely needs a changelog entry.
-- [ ] I considered whether this is a minor or major SemVer change.
+<!-- Other approaches -->
 
 ## Additional context
+
+<!-- Screenshots, links, examples -->

@@ -1,0 +1,17 @@
+[package]
+name = "kmobile-api"
+version = "0.1.0"
+edition = "2021"
+description = "KMobile HTTP API server"
+license = "MIT"
+
+[[bin]]
+name = "kmobile-api"
+path = "src/main.rs"
+
+[dependencies]
+kmobile-core = { path = "../kmobile-core" }
+axum = "0.7"
+tokio = { version = "1.0", features = ["full"] }
+tracing = "0.1"
+anyhow = "1.0"

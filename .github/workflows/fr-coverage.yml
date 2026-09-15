@@ -1,26 +1,71 @@
 name: FR Coverage
-permissions:
-  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-on: [pull_request]
+on: [pull_request, push]
+
+permissions:
+  contents: read
+
 jobs:
   coverage:
-    runs-on: ubuntu-latest
+    name: Cargo test + coverage gate (tarpaulin)
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.1.1
-      - uses: dtolnay/rust-toolchain@stable
-      - run: |
-          if [ ! -f tooling/fr-coverage ]; then
-            mkdir -p tooling
-            if [ -d phenotype-tooling ]; then
-              cd phenotype-tooling && cargo build --release --bin fr-coverage 2>&1 | tail -5
-              ln -sf ../phenotype-tooling/target/release/fr-coverage ../tooling/
-            else
-              echo "Note: fr-coverage not available; skipping" && exit 0
-            fi
-          fi
-          tooling/fr-coverage --pr || true
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+
+      - name: Install cargo-tarpaulin
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-tarpaulin
+
+      - name: Run tests with coverage (JSON output)
+        run: |
+          cargo tarpaulin \
+            --workspace \
+            --exclude-files "crates/eidolon-desktop/*" \
+            --exclude-files "crates/eidolon-mobile/*" \
+            --timeout 120 \
+            --out Json \
+            --output-dir coverage/
+
+      - name: Enforce coverage threshold (60 %)
+        # Parse tarpaulin's JSON (not XML) so we avoid XXE-prone stdlib
+        # XML parsers. tarpaulin --out Json emits { "coverage": <float_pct> }
+        # at the top level alongside per-file data.
+        run: |
+          python3 - <<'PYEOF'
+          import json, sys
+          with open("coverage/tarpaulin-report.json") as fh:
+              data = json.load(fh)
+          # tarpaulin JSON schema: top-level "coverage" key is percent (0-100).
+          coverage_pct = float(data.get("coverage", 0))
+          threshold_pct = 60.0
+          print(f"Line coverage: {coverage_pct:.1f}%")
+          if coverage_pct < threshold_pct:
+              print(
+                  f"ERROR: coverage {coverage_pct:.1f}% is below "
+                  f"the required {threshold_pct:.0f}% threshold",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+          print(f"Coverage gate passed ({coverage_pct:.1f}% >= {threshold_pct:.0f}%)")
+          PYEOF
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,21 +1,23 @@
-# Contributing to phenoAI
+# Contributing to Eidolon
 
-## Quick start
-1. Fork + clone.
-2. Create a branch from main: `chore/<topic>`, `feat/<topic>`, or `fix/<topic>`.
-3. Run local quality gates before push (see below).
-4. Open a PR to main with a clear description.
+Thanks for your interest. This project is part of the [Phenotype](https://github.com/KooshaPari) ecosystem.
 
-## Local quality gates
-- Rust: `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`
+## Workflow
 
-## Commit style
-Conventional commits: `type(scope): summary`.
-Types: feat, fix, chore, docs, refactor, test, ci, perf.
+1. Fork.
+2. Topic branch off `main`: `git checkout -b feat/short-description`.
+3. Conventional Commits preferred (`feat:`, `fix:`, `docs:`, `chore:`).
+4. Run local lint/format/test before pushing.
+5. PR against `main` with clear description.
 
-## Governance
-See CLAUDE.md for agent rules + AGENTS.md for hub context.
-Never commit secrets; pre-commit hook runs trufflehog.
+## Code of Conduct
 
-## Scripting policy
-Rust default; Zig/Mojo/Go with one-line justification; Python/TS embedded only; Bash as ≤5-line glue with inline justification.
+By participating, you agree to abide by [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
+
+## Reporting Issues
+
+Use the repository GitHub Issues tab with reproduction + environment.
+
+## Security
+
+For sensitive disclosures, open a private repository security advisory.

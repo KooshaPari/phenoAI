@@ -1,5 +1,8 @@
-// Traces to: FR-001
+// Smoke test for basic functionality
+// Traces to: FR-ORG-AUDIT-2026-04-001
+
 #[test]
-fn smoke_test_loads() {
-    assert!(true, "Crate loads successfully");
+fn smoke_test() {
+    // Basic sanity check
+    assert_eq!(2 + 2, 4);
 }

@@ -1,0 +1,94 @@
+# Optional Ext4 canned rootfs release staging (billing-safe)
+
+# Honesty:
+# - Prefer manual `gh release` steps in docs/guides/gh-ext4-release.md.
+# - KooshaPari GitHub Actions billing/spend limit is often exhausted — do NOT
+#   rely on this workflow for merge gates or automatic publishes.
+# - workflow_dispatch only (never on push/PR). Linux ubuntu-latest only.
+# - Stages versioned Ext4 + SHA-256 as a workflow artifact; does not create
+#   a GitHub Release unless you explicitly add a follow-up upload step.
+
+name: Ext4 rootfs release (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version label (e.g. 0.1.0)"
+        required: true
+        type: string
+      skip_if_billing_risk:
+        description: "Exit successfully without building (billing-safe no-op)"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  stage-ext4:
+    name: Stage Ext4 release asset (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Billing-safe early exit
+        if: ${{ inputs.skip_if_billing_risk }}
+        run: |
+          set -euo pipefail
+          echo "::notice::skip_if_billing_risk=true — not building Ext4 asset."
+          echo "Prefer manual publish: docs/guides/gh-ext4-release.md"
+          echo "Re-run with skip_if_billing_risk=false only when Actions minutes are available."
+          exit 0
+
+      - name: Checkout
+        if: ${{ !inputs.skip_if_billing_risk }}
+        uses: actions/checkout@v4
+
+      - name: Rust toolchain (+ musl target)
+        if: ${{ !inputs.skip_if_billing_risk }}
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+
+      - name: Install pack tools
+        if: ${{ !inputs.skip_if_billing_risk }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends e2fsprogs musl-tools
+
+      - name: Build vsock agent (musl)
+        if: ${{ !inputs.skip_if_billing_risk }}
+        run: |
+          set -euo pipefail
+          cargo build -p eidolon-sandbox --features sandbox-vsock-agent \
+            --bin eidolon-vsock-agent --target x86_64-unknown-linux-musl \
+            --locked --release
+          echo "EIDOLON_VSOCK_AGENT=$PWD/target/x86_64-unknown-linux-musl/release/eidolon-vsock-agent" >> "$GITHUB_ENV"
+
+      - name: Build + stage versioned Ext4
+        if: ${{ !inputs.skip_if_billing_risk }}
+        env:
+          ROOTFS_PACK_INTEGRATION: "1"
+        run: |
+          set -euo pipefail
+          cargo run -p eidolon-sandbox --features sandbox-rootfs-pack \
+            --bin eidolon-release-rootfs --locked -- \
+            --build --agent "$EIDOLON_VSOCK_AGENT" \
+            --version "${{ inputs.version }}" \
+            --tag "rootfs-v${{ inputs.version }}"
+          ls -la target/rootfs-release/
+
+      - name: Upload staging artifact (not a GH Release)
+        if: ${{ !inputs.skip_if_billing_risk }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: eidolon-rootfs-release-${{ inputs.version }}
+          path: target/rootfs-release/
+          if-no-files-found: error
+
+      - name: Reminder — manual gh release upload
+        if: ${{ !inputs.skip_if_billing_risk }}
+        run: |
+          set -euo pipefail
+          echo "::notice::Artifact staged only. Publish with gh release upload — see docs/guides/gh-ext4-release.md"

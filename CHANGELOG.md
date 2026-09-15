@@ -1,25 +1,53 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to Eidolon are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
 ### Added
-- Initial CHANGELOG scaffold.
+
+- Seccomp OCI-style allowlist profiles in `eidolon-sandbox` (`sandbox-seccomp`):
+  `EIDOLON_SECCOMP_PROFILE=block-dangerous` (default) \| `oci-default` \| path to
+  OCI/Docker seccomp JSON. Invalid profiles fail loud at plan time. Hermetic
+  OCI parse + syscall-name unit tests; Linux apply via `seccompiler` 0.5.
+- In-tree iOS XCUITest host at `native/ios/EidolonXcuiHelper/` (host app + UITests +
+  `eidolon-xcui-xctest` argv runner). Preferred by `XcuiBridge` when built; Rust
+  `eidolon-xcui-helper` remains AppleScript/simctl fallback. Live gate:
+  `EIDOLON_XCUI_XCODE_INTEGRATION=1`.
+- `VirtualStage` trait in `eidolon-core` per plans/2026-06-09-eidolon-platform-impl-plan-v1.md. Provides: a unified async surface that absorbs `DesktopAutomator`, `MobileAutomator`, and `SandboxAutomator` behind a single trait with optional default-implemented sub-traits (`MobileStage`, `SandboxStage`). Platform impls: macOS (real, Core Graphics), Windows/Linux/Mobile/Sandbox (stub baselines).
 
 ### Changed
+
+- The 3 sibling traits (`DesktopAutomator`, `MobileAutomator`, `SandboxAutomator`) are kept for backward compatibility but are now supertraits of `VirtualStage`. New code should depend on `VirtualStage` directly. Consumers that need Mobile-specific methods should depend on `MobileStage`; sandbox-specific on `SandboxStage`.
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- **ci(trunk-check):** switch `.github/workflows/trunk-check.yml` from the orphan SHA `trunk-io/trunk-action@d90b9166660d5e5afae248a58172a3a0e99d56d5` (returned 422 from `repos/trunk-io/trunk-action/commits/<sha>`; workflow has been failing every run for at least 6+ weeks, 0/20 sampled) to the valid SHA `04ba50e7658c81db7356da96657e6e77f220bfa3` for tag `v1.3.1`. Also renames the v1.3+ input `trunk-args` → `arguments` on the schedule-only `--upgrade` step (the v1.x input was renamed). Per https://github.com/trunk-io/trunk-action action.yaml at v1.3.1.
-- **ci(governance):** switch `.github/workflows/governance.yml` (Conventional commit check step) from the orphan SHA `wagoid/commitlint-github-action@5a18711fb4551c356c12597d399a82599b8e2a39` (HTTP 404 from the repo's `/commit/<sha>` endpoint, despite the inline `# v5` comment) to `9763196e10f27aef304c9b8b660d31d97fce0f99` for tag `v5.5.1` (latest v5). Verified `action.yml` at v5.5.1 uses the same input contract as the orphan v5 pin (`configFile`, `token`, default `failOnErrors: true`). Note: governance workflow has `continue-on-error: true` on the `commit-policy` job, so the workflow itself reports success even when this step errors; nevertheless the missing action leaves the check unresolved and confuses CI logs / merge heuristics.
-- **ci(cargo-machete):** switch `.github/workflows/cargo-machete.yml` from the orphan SHA `bnjbvr/cargo-machete@fbb3fa79e64f5c1b1c0ce8e2cd4b65eef5d76c70` (HTTP 404 from the repo's `/commit/<sha>` endpoint; workflow has been failing every run for at least the past ~3 weeks of push events, 0/20 sampled) to `ac30a525c0a8d163a92d727b3ff079ee3f6ecb08` for tag `v0.9.2` (latest release; `target_commitish` is `main`). Verified `action.yml` at v0.9.2 uses the same composite-runner + `args` input contract as the orphan pin.
+
 ### Security
 
-[Unreleased]: https://github.com/KooshaPari/phenoAI/compare/HEAD...HEAD
+## [0.0.1] — 2026-04-24
+
+### Added
+
+- **eidolon-core**: Trait-based core with `DesktopAutomator`, `MobileAutomator`, `SandboxAutomator` traits
+- **AutomationEvent**: Unified event type for audit logging and playback
+- **PointerInput**, **TextInput**: Serializable input abstractions
+- **Viewport**: Screen dimension and orientation metadata
+- **AutomationError**: Error enum with common failure modes (device not found, timeout, permission denied, etc.)
+- **eidolon-desktop**: Stub `DesktopClient` (macOS, Windows, Linux)
+- **eidolon-mobile**: Stub `MobileClient` (iOS, Android)
+- **eidolon-sandbox**: Stub `SandboxClient` (nanoVMs, Docker, KVM)
+- Workspace `Cargo.toml` with shared dependencies (tokio, serde, thiserror, uuid, async-trait)
+- README with architecture overview and trait documentation
+- EXTRACTION_PLAN.md and ADR-001-trait-based-core.md drafts
+
+### Status
+
+Initial workspace bootstrap; stubs verified with `cargo check --workspace` (zero errors).
+No external integrations yet. Ready for incremental extraction from KDesktopVirt, kmobile, KVirtualStage, PlayCua, bare-cua.

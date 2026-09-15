@@ -1,0 +1,60 @@
+# XcodeGen spec — regenerate with: xcodegen generate
+# Prefer committing the generated EidolonXcuiHelper.xcodeproj so XcodeGen is optional.
+name: EidolonXcuiHelper
+options:
+  bundleIdPrefix: org.phenotype.eidolon
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    CODE_SIGNING_ALLOWED: "NO"
+    CODE_SIGN_IDENTITY: ""
+    DEVELOPMENT_TEAM: ""
+targets:
+  EidolonXcuiHelper:
+    type: application
+    platform: iOS
+    sources:
+      - path: EidolonXcuiHelper
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.phenotype.eidolon.EidolonXcuiHelper
+        INFOPLIST_FILE: EidolonXcuiHelper/Info.plist
+        GENERATE_INFOPLIST_FILE: false
+        PRODUCT_NAME: EidolonXcuiHelper
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/Frameworks"
+    scheme:
+      testTargets:
+        - EidolonXcuiHelperUITests
+      gatherCoverageData: false
+  EidolonXcuiHelperUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: EidolonXcuiHelperUITests
+    dependencies:
+      - target: EidolonXcuiHelper
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.phenotype.eidolon.EidolonXcuiHelperUITests
+        INFOPLIST_FILE: EidolonXcuiHelperUITests/Info.plist
+        GENERATE_INFOPLIST_FILE: false
+        TEST_TARGET_NAME: EidolonXcuiHelper
+        PRODUCT_NAME: EidolonXcuiHelperUITests
+schemes:
+  EidolonXcuiHelper:
+    build:
+      targets:
+        EidolonXcuiHelper: all
+        EidolonXcuiHelperUITests: [test]
+    test:
+      targets:
+        - EidolonXcuiHelperUITests
+      config: Debug

@@ -1,27 +1,122 @@
 name: Quality Gate
-permissions:
-  contents: read
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main, "feat/**", "fix/**", "refactor/**", "chore/**", "docs/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
 jobs:
-  gate:
-    runs-on: ubuntu-latest
-    continue-on-error: true
+  # ------------------------------------------------------------------
+  # coverage — cargo-llvm-cov → lcov; uploaded for qgate to consume
+  # ------------------------------------------------------------------
+  coverage:
+    name: Coverage — cargo-llvm-cov (granular-recursive)
+    # Standard Linux runner only — macOS/Windows incur billed minutes
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.1.1
-      - uses: dtolnay/rust-toolchain@stable
-      - run: |
-          if [ ! -f tooling/quality-gate ]; then
-            mkdir -p tooling
-            if [ -d phenotype-tooling ]; then
-              cd phenotype-tooling && cargo build --release --bin quality-gate 2>&1 | tail -5
-              ln -sf ../phenotype-tooling/target/release/quality-gate ../tooling/
-            else
-              echo "Note: quality-gate not available; skipping" && exit 0
-            fi
-          fi
-          tooling/quality-gate --quick || true
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
+
+      - name: Install Rust toolchain (stable + llvm-tools)
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # stable
+        with:
+          components: "llvm-tools-preview"
+
+      - name: Restore Cargo cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e4b4c # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Checkout pheno (path dependency)
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
+        with:
+          repository: KooshaPari/pheno
+          path: ../pheno
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked --version 0.6.18
+
+      - name: Generate lcov coverage report
+        run: |
+          cargo llvm-cov \
+            --workspace \
+            --lcov \
+            --output-path coverage/lcov.info
+          cargo llvm-cov --workspace --summary-only
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: eidolon-coverage
+          path: coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 30
+
+  # ------------------------------------------------------------------
+  # qgate — granular-recursive 85% threshold via phenotype-tooling
+  # ------------------------------------------------------------------
+  qgate:
+    name: qgate — granular-recursive quality gate (85%)
+    needs: coverage
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4
+        with:
+          name: eidolon-coverage
+          path: coverage
+
+      - name: Run qgate
+        uses: KooshaPari/phenotype-tooling/.github/workflows/reusable/quality-gate.yml@main
+        with:
+          coverage-report: coverage/lcov.info
+          coverage-format: lcov
+          threshold: 85
+          # a11y: headless automation library — no UI surface
+          # macos-platform: Core Graphics APIs require real macOS + Accessibility perms;
+          #   cg_point_from_input and mouse_button_from_str are unit-tested;
+          #   the CG event dispatch path is N/A for Linux CI.
+          not-applicable: "a11y,macos-platform"
+          working-directory: .
+
+  # ------------------------------------------------------------------
+  # test-virtual-stage — VirtualStage verification (preserved)
+  # ------------------------------------------------------------------
+  test-virtual-stage:
+    name: VirtualStage verification
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
+
+      - name: Checkout pheno (path dependency)
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
+        with:
+          repository: KooshaPari/pheno
+          path: ../pheno
+
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Run VirtualStage verification
+        run: |
+          cargo test -p eidolon-core virtual_stage && \
+          cargo test -p eidolon-desktop virtual_stage && \
+          cargo test -p eidolon-mobile && \
+          cargo test -p eidolon-sandbox

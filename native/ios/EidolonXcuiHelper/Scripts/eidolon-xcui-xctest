@@ -1,0 +1,339 @@
+#!/usr/bin/env swift
+// eidolon-xcui-xctest — BundleXcuiBridge argv runner for the in-tree XCUITest project.
+//
+// Speaks the same contract as eidolon-xcui-helper:
+//   tap|swipe|text|viewport --udid <id> …
+//
+// Injects EIDOLON_XCUI_REQUEST_JSON via a temporary .xctestrun overlay (Simulator
+// UITests cannot read host build/ paths). Parses EIDOLON_XCUI_RESULT:… from logs.
+//
+// macOS + Xcode only. Build products stay under ./build (never /tmp).
+// wraps: xcodebuild / XCUITest (system)
+
+import Foundation
+
+let helperName = "eidolon-xcui-xctest"
+let scheme = "EidolonXcuiHelper"
+let projectName = "EidolonXcuiHelper.xcodeproj"
+let resultMarker = "EIDOLON_XCUI_RESULT:"
+
+struct Request: Codable {
+    let op: String
+    let udid: String
+    var x: Int? = nil
+    var y: Int? = nil
+    var x1: Int? = nil
+    var y1: Int? = nil
+    var x2: Int? = nil
+    var y2: Int? = nil
+    var value: String? = nil
+}
+
+struct Response: Codable {
+    let ok: Bool
+    let stdout: String
+    let error: String?
+}
+
+func projectRoot() -> URL {
+    var url = URL(fileURLWithPath: CommandLine.arguments[0])
+        .resolvingSymlinksInPath()
+        .deletingLastPathComponent()
+    if url.lastPathComponent == "Scripts" {
+        url = url.deletingLastPathComponent()
+    }
+    if url.lastPathComponent == "build" {
+        url = url.deletingLastPathComponent()
+    }
+    return url
+}
+
+func usage(_ detail: String) -> Never {
+    fputs(
+        """
+        \(detail)
+        usage: \(helperName) tap|swipe|text|viewport --udid <id> …
+        contract matches BundleXcuiBridge; XCUITest host: native/ios/EidolonXcuiHelper
+        build: see README.md (xcodebuild -derivedDataPath build)
+        """,
+        stderr
+    )
+    exit(2)
+}
+
+func fail(_ message: String, code: Int32 = 1) -> Never {
+    fputs("error: \(message)\n", stderr)
+    exit(code)
+}
+
+func parseFlags(_ args: ArraySlice<String>) -> [String: String] {
+    var out: [String: String] = [:]
+    var i = args.startIndex
+    while i < args.endIndex {
+        let key = args[i]
+        guard key.hasPrefix("--") else {
+            fail("unexpected positional `\(key)`", code: 2)
+        }
+        let j = args.index(after: i)
+        guard j < args.endIndex else {
+            fail("flag `\(key)` requires a value", code: 2)
+        }
+        out[key] = args[j]
+        i = args.index(after: j)
+    }
+    return out
+}
+
+func require(_ flags: [String: String], _ key: String) -> String {
+    guard let v = flags[key] else {
+        usage("missing required flag `\(key)`")
+    }
+    return v
+}
+
+func requireInt(_ flags: [String: String], _ key: String) -> Int {
+    let raw = require(flags, key)
+    guard let n = Int(raw) else {
+        usage("\(key) must be an integer")
+    }
+    return n
+}
+
+func parseRequest(_ args: [String]) -> Request {
+    guard let op = args.first else {
+        usage("missing op (tap|swipe|text|viewport)")
+    }
+    if op == "--version" {
+        print("\(helperName) 1.0.0 (xcuitest)")
+        exit(0)
+    }
+    if op == "help" || op == "--help" || op == "-h" {
+        usage("help")
+    }
+    let flags = parseFlags(args.dropFirst())
+    let udid = require(flags, "--udid")
+    switch op {
+    case "tap":
+        return Request(op: op, udid: udid, x: requireInt(flags, "--x"), y: requireInt(flags, "--y"))
+    case "swipe":
+        return Request(
+            op: op,
+            udid: udid,
+            x1: requireInt(flags, "--x1"),
+            y1: requireInt(flags, "--y1"),
+            x2: requireInt(flags, "--x2"),
+            y2: requireInt(flags, "--y2")
+        )
+    case "text":
+        return Request(op: op, udid: udid, value: require(flags, "--value"))
+    case "viewport":
+        return Request(op: op, udid: udid)
+    default:
+        usage("unknown op `\(op)`")
+    }
+}
+
+/// Locate the newest .xctestrun under derived data and clone it with request env.
+func prepareXctestrun(buildDir: URL, requestJSON: String) throws -> URL {
+    let fm = FileManager.default
+    guard let enumerator = fm.enumerator(
+        at: buildDir,
+        includingPropertiesForKeys: [.isRegularFileKey],
+        options: [.skipsHiddenFiles]
+    ) else {
+        throw NSError(
+            domain: helperName,
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "cannot enumerate \(buildDir.path)"]
+        )
+    }
+    var candidates: [URL] = []
+    while let item = enumerator.nextObject() as? URL {
+        if item.pathExtension == "xctestrun" {
+            candidates.append(item)
+        }
+    }
+    guard let source = candidates.sorted(by: { $0.path < $1.path }).last else {
+        throw NSError(
+            domain: helperName,
+            code: 1,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "no .xctestrun under \(buildDir.path) — run Scripts/build-for-testing.swift first",
+            ]
+        )
+    }
+    guard let plist = NSMutableDictionary(contentsOf: source) else {
+        throw NSError(
+            domain: helperName,
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "failed reading \(source.path)"]
+        )
+    }
+    // Inject into every top-level test configuration dict that has EnvironmentVariables
+    // or is a known TestConfigurations entry.
+    func inject(_ dict: NSMutableDictionary) {
+        let env: NSMutableDictionary
+        if let existing = dict["EnvironmentVariables"] as? NSDictionary {
+            env = NSMutableDictionary(dictionary: existing)
+        } else if let existing = dict["TestingEnvironmentVariables"] as? NSDictionary {
+            env = NSMutableDictionary(dictionary: existing)
+        } else {
+            env = NSMutableDictionary()
+        }
+        env["EIDOLON_XCUI_REQUEST_JSON"] = requestJSON
+        dict["EnvironmentVariables"] = env
+        dict["TestingEnvironmentVariables"] = env
+    }
+
+    for (_, value) in plist {
+        if let dict = value as? NSMutableDictionary {
+            inject(dict)
+        } else if let dict = value as? NSDictionary {
+            let mutable = NSMutableDictionary(dictionary: dict)
+            inject(mutable)
+            // Cannot replace immutable copy in place easily — rewrite keys below.
+        }
+    }
+    // Re-walk with mutation of top-level keys.
+    let keys = plist.allKeys.compactMap { $0 as? String }
+    for key in keys {
+        guard let value = plist[key] else { continue }
+        if let dict = value as? NSDictionary {
+            let mutable = NSMutableDictionary(dictionary: dict)
+            inject(mutable)
+            plist[key] = mutable
+        }
+    }
+
+    let out = buildDir.appendingPathComponent("eidolon-xcui-request.xctestrun")
+    if !plist.write(to: out, atomically: true) {
+        throw NSError(
+            domain: helperName,
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "failed writing \(out.path)"]
+        )
+    }
+    return out
+}
+
+func parseResult(from log: String) -> Response? {
+    for line in log.split(separator: "\n", omittingEmptySubsequences: false) {
+        let s = String(line)
+        guard let range = s.range(of: resultMarker) else { continue }
+        let payload = String(s[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+        guard let data = payload.data(using: .utf8),
+              let response = try? JSONDecoder().decode(Response.self, from: data)
+        else {
+            continue
+        }
+        return response
+    }
+    return nil
+}
+
+#if !os(macOS)
+fail("\(helperName): iOS XCUITest automation is macOS-only")
+#else
+
+let root = projectRoot()
+let buildDir = root.appendingPathComponent("build", isDirectory: true)
+let projectPath = root.appendingPathComponent(projectName)
+let stampPath = buildDir.appendingPathComponent(".eidolon-xcui-built")
+
+let args = Array(CommandLine.arguments.dropFirst())
+let request = parseRequest(args)
+
+guard FileManager.default.fileExists(atPath: projectPath.path) else {
+    fail("missing \(projectPath.path) — open/generate the in-tree Xcode project first")
+}
+
+try? FileManager.default.createDirectory(at: buildDir, withIntermediateDirectories: true)
+
+if !FileManager.default.fileExists(atPath: stampPath.path) {
+    if ProcessInfo.processInfo.environment["EIDOLON_XCUI_AUTOBUILD"] == "1" {
+        let build = Process()
+        build.executableURL = URL(fileURLWithPath: "/usr/bin/xcodebuild")
+        build.arguments = [
+            "build-for-testing",
+            "-project", projectPath.path,
+            "-scheme", scheme,
+            "-destination", "id=\(request.udid)",
+            "-derivedDataPath", buildDir.path,
+            "CODE_SIGNING_ALLOWED=NO",
+        ]
+        build.currentDirectoryURL = root
+        try? build.run()
+        build.waitUntilExit()
+        if build.terminationStatus != 0 {
+            fail("xcodebuild build-for-testing failed (status \(build.terminationStatus))")
+        }
+        FileManager.default.createFile(atPath: stampPath.path, contents: Data("ok\n".utf8))
+    } else {
+        fail(
+            "Xcode products not built — run Scripts/build-for-testing.swift (or "
+                + "xcodebuild -derivedDataPath build), then retry; stamp missing: "
+                + stampPath.path
+        )
+    }
+}
+
+let encoder = JSONEncoder()
+encoder.outputFormatting = [.sortedKeys]
+let requestData: Data
+do {
+    requestData = try encoder.encode(request)
+} catch {
+    fail("failed encoding request: \(error)")
+}
+guard let requestJSON = String(data: requestData, encoding: .utf8) else {
+    fail("request JSON not UTF-8")
+}
+
+let xctestrun: URL
+do {
+    xctestrun = try prepareXctestrun(buildDir: buildDir, requestJSON: requestJSON)
+} catch {
+    fail(String(describing: error))
+}
+
+let xcodebuild = Process()
+xcodebuild.executableURL = URL(fileURLWithPath: "/usr/bin/xcodebuild")
+xcodebuild.arguments = [
+    "test-without-building",
+    "-xctestrun", xctestrun.path,
+    "-destination", "id=\(request.udid)",
+    "-only-testing:EidolonXcuiHelperUITests/EidolonXcuiActions/testRunRequestedOp",
+]
+xcodebuild.currentDirectoryURL = root
+
+let pipe = Pipe()
+xcodebuild.standardOutput = pipe
+xcodebuild.standardError = pipe
+
+do {
+    try xcodebuild.run()
+} catch {
+    fail("spawn xcodebuild failed: \(error)")
+}
+xcodebuild.waitUntilExit()
+let combined = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+
+guard let response = parseResult(from: combined) else {
+    fail(
+        "XCUITest did not emit \(resultMarker) (xcodebuild status "
+            + "\(xcodebuild.terminationStatus)). Last log:\n"
+            + combined.split(separator: "\n").suffix(20).joined(separator: "\n")
+    )
+}
+
+if !response.ok {
+    fail(response.error ?? "XCUITest op failed")
+}
+
+if !response.stdout.isEmpty {
+    print(response.stdout)
+}
+
+exit(0)
+#endif

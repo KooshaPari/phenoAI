@@ -1,71 +1,25 @@
-# AGENTS.md — phenoAI
+# AGENTS.md — Eidolon
 
-This file governs work inside the phenoAI repository.
+Unified trait-based device automation for desktop, mobile, and sandbox environments
 
-## Identity
+## Quick Links
 
-phenoAI is a [brief description of purpose and role in Phenotype ecosystem].
+- **Local CLAUDE.md:** See `CLAUDE.md` in this repository for project-specific guidance
+- **Phenotype org governance:** `/Users/kooshapari/CodeProjects/Phenotype/repos/CLAUDE.md`
+- **Global agent guidance:** `~/.claude/AGENTS.md`
+- **AgilePlus work tracking:** `cd /repos/AgilePlus && agileplus <command>`
 
-Do not apply parent shelf instructions (`/Users/kooshapari/CodeProjects/Phenotype/repos/AGENTS.md`) unless explicitly referenced. Work from this directory and treat paths as local to phenoAI.
+## Key Workflows
 
-## Required Operating Loop
+1. **Before implementing:** Check AgilePlus for existing specs
+2. **Quality gates:** Run linters, tests, and docs validation (see CLAUDE.md)
+3. **Worktrees:** Use `repos/Eidolon-wtrees/<topic>/` for feature work
+4. **Integration:** Commit to canonical repo (`main`) after quality gates pass
 
-1. Check AgilePlus for existing specs before implementation
-2. Research code and tests before editing
-3. Keep changes scoped to a single feature or bug fix
-4. Validate with quality-gate checks (see below)
-5. Do not leave incomplete work or stub implementations
+## Project-Specific Gotchas
 
-## Canonical Surfaces
-
-- **Spec tracking:** AgilePlus at `/Users/kooshapari/CodeProjects/Phenotype/repos/AgilePlus`
-- **Work audit:** `docs/worklogs/README.md`
-- **Quality gates:** See `Governance Reference` below
-- **Build/test:** See project-specific targets (Makefile, Cargo.toml, package.json, etc.)
-
-## Quality Rules
-
-### Linting & Formatting
-
-All code MUST pass linting and formatting checks before commit:
-- Run linters and formatters locally (see CLAUDE.md for commands)
-- Fix errors; do not suppress or ignore warnings
-- Commit all formatting changes before feature changes
-
-### Testing & Specification Traceability
-
-- All tests MUST reference a Functional Requirement (FR) if FUNCTIONAL_REQUIREMENTS.md exists
-- Every FR MUST have at least 1 test
-- Run tests locally and verify pass before pushing
-
-### Documentation
-
-- Use Vale for Markdown validation where available
-- Keep docs organized per global structure: `docs/guides/`, `docs/reports/`, `docs/research/`, `docs/reference/`, `docs/checklists/`
-- Never create `.md` files at root level (except `README.md`, `CLAUDE.md`, `AGENTS.md`)
-
-## Governance Reference
-
-- **Global baseline:** `~/.claude/CLAUDE.md` (Dependency preferences, Prose quality, Context management, Failure behavior)
-- **Phenotype-org scripting:** `repos/docs/governance/scripting_policy.md` (Rust default; no new shell)
-- **CI/GitHub Actions:** See parent CLAUDE.md (billing constraint; skip macOS/Windows runners)
-- **Git discipline:** Phenotype Git and Delivery Workflow Protocol (parent CLAUDE.md)
-- **Child agents & delegation:** See parent CLAUDE.md (prefer subagents for multi-file work)
-
-## Worktree Pattern
-
-- **Feature work:** Use repo worktrees at `repos/[PROJECT]-wtrees/<topic>/`
-- **Canonical repo:** Always on `main` except during merge operations
-- **No feature branches in canonical:** All work isolated in worktrees until integration
-
-## Integration & Handoff
-
-When feature work is complete:
-1. Ensure all tests pass and quality gates are clean
-2. Create a pull request or squash-commit to `main`
-3. Update AgilePlus work package status
-4. Archive worktree or keep for reference
+See CLAUDE.md for language stack, build commands, and testing requirements.
 
 ---
 
-**Parent contract:** See `AGENTS.md` at `/Users/kooshapari/CodeProjects/Phenotype/repos/AGENTS.md` for cross-project agent coordination and parent shelf governance.
+**Parent contract:** Extends Phenotype-org governance. See `CLAUDE.md` and parent `AGENTS.md` for complete operating procedures.
