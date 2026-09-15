@@ -1,0 +1,21 @@
+{
+  "task": "Add ProcessSpawner port trait and TokioProcessSpawner adapter to PlayCua core/native crate",
+  "branch": "chore/L4-034-process-spawner-port-2026-06-11",
+  "files_changed": [
+    "native/src/ports/mod.rs",
+    "native/src/adapters/mod.rs",
+    "native/src/adapters/tokio.rs"
+  ],
+  "test_results": {
+    "command": "cargo test -p playcua-native",
+    "result": "passed",
+    "notes": [
+      "27 unit tests passed in the library/bin targets.",
+      "New TokioProcessSpawner tests covered piped stdio and kill() behavior."
+    ]
+  },
+  "notes": [
+    "The requested crates/playcua-core path does not exist in this workspace; the equivalent implementation was added to the native crate used by this repo.",
+    "Workspace dependencies already included tokio and async-trait, so no Cargo dependency changes were required."
+  ]
+}

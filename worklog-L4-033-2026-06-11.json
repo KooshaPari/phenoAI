@@ -1,0 +1,26 @@
+{
+  "task": "L4-033 WindowCapturer port + X11WindowCapturer adapter",
+  "branch": "chore/L4-033-window-capturer-port-2026-06-11",
+  "files_changed": [
+    "Cargo.lock",
+    "native/Cargo.toml",
+    "native/src/adapters/linux/mod.rs",
+    "native/src/adapters/linux/x11.rs",
+    "native/src/ports/mod.rs"
+  ],
+  "test_results": [
+    {
+      "command": "CARGO_TARGET_DIR=/tmp/playcua-l4-033-target cargo build --workspace --offline",
+      "status": "passed"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=/tmp/playcua-l4-033-target cargo test -p playcua-native --offline",
+      "status": "passed"
+    }
+  ],
+  "notes": [
+    "The requested playcua-core crate is not present in this checkout; equivalent work was applied to playcua-native.",
+    "The X11 adapter is gated to Linux and unit tests only exercise pure parsing helpers, so they do not require an X server.",
+    "Cargo was validated with --offline because direct network permission escalation was rejected by the sandbox reviewer."
+  ]
+}

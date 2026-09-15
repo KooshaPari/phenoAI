@@ -1,0 +1,28 @@
+{
+  "task_id": "L3-023",
+  "dag": "FLEET_100TASK_DAG_V3",
+  "title": "Add wiremock-backed screenshot HTTP integration tests",
+  "date": "2026-06-11",
+  "repo": "PlayCua",
+  "branch": "chore/L3-023-wiremock-2026-06-11",
+  "status": "complete",
+  "files_changed": [
+    "Cargo.lock",
+    "native/Cargo.toml",
+    "native/tests/integration_screenshot_api.rs",
+    "worklog-L3-023-2026-06-11.json"
+  ],
+  "changes": [
+    "Added wiremock and reqwest dev-dependencies to the native crate for HTTP-level screenshot integration testing.",
+    "Added integration_screenshot_api.rs covering successful PNG decode, surfaced 500 responses, and per-request timeout handling.",
+    "Compiled and ran the new integration test target using the live package name playcua-native because this workspace does not contain a screenshot-api crate."
+  ],
+  "verification": [
+    "CARGO_NET_OFFLINE=true CARGO_TARGET_DIR=/private/tmp/playcua-l3-023-target cargo test --no-run -p playcua-native --test integration_screenshot_api",
+    "CARGO_NET_OFFLINE=true CARGO_TARGET_DIR=/private/tmp/playcua-l3-023-target cargo test -p playcua-native --test integration_screenshot_api"
+  ],
+  "notes": [
+    "The user-requested package name screenshot-api is not present in the current workspace; playcua-native is the only Rust package exposed by cargo metadata.",
+    "Cargo emitted pre-existing dead-code warnings from the native crate during the test build."
+  ]
+}

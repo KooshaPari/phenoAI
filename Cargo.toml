@@ -17,6 +17,11 @@ members = [
     "crates/gateway",
     "crates/pheno-capacity",
     "crates/argis-extensions",
+    # PlayCua (absorbed from zz-merge-unk-PlayCua)
+    "native",
+    "crates/pheno-errors",
+    "crates/pheno-tracing",
+    "crates/pheno-flags",
 ]
 resolver = "3"
 
@@ -33,3 +38,26 @@ anyhow = "1.0"
 tracing = "0.1"
 async-trait = "0.1"
 substrate = { git = "https://github.com/KooshaPari/substrate", branch = "main" }
+
+# PlayCua dependencies (absorbed from zz-merge-unk-PlayCua)
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+base64 = "0.23"
+image = { version = "=0.25.10", default-features = false, features = ["png", "jpeg"] }
+blake3 = "=1.8.7"
+fast_image_resize = "6"
+enigo = { version = "0.6", features = [] }
+xcap = "0.9"
+pheno-errors  = { path = "crates/pheno-errors", version = "*" }
+pheno-tracing = { path = "crates/pheno-tracing", version = "*" }
+pheno-flags   = { path = "crates/pheno-flags", version = "*" }
+rmcp = { version = "3.1", default-features = false, features = [
+    "server",
+    "macros",
+    "transport-io",
+    "transport-streamable-http-server",
+    "reqwest",
+] }
+schemars = "1.0"
+clap = { version = "4.5", features = ["derive", "env"] }
+axum = "0.8"
+tower = "0.5"

@@ -1,0 +1,16 @@
+[package]
+name = "pheno-errors"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Canonical AppError type used across the phenotype/pheno-* fleet. L5 #81 wiring for PlayCua."
+
+[features]
+# Adds `From<anyhow::Error> for AppError` (off by default — keeps
+# `pheno-errors` lean when callers don't use `anyhow`).
+anyhow = ["dep:anyhow"]
+
+[dependencies]
+thiserror.workspace = true
+anyhow = { workspace = true, optional = true }

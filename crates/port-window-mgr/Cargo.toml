@@ -1,0 +1,16 @@
+[workspace]
+
+[package]
+name = "port-window-mgr"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+description = "WindowManager port trait for the PlayCua hex refactor (L4 #61). Defines the abstract boundary between the application core and any concrete window-manager adapter (X11 EWMH, macOS NSWorkspace, Windows EnumWindows + SetForegroundWindow, headless test double, etc.)."
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+thiserror = "2.0"

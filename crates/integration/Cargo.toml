@@ -1,0 +1,17 @@
+[package]
+name = "playcua-integration"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "PlayCua integration crate wiring pheno-errors, pheno-tracing, and pheno-config"
+
+# Standalone crate — not a member of the PlayCua workspace
+[workspace]
+
+[dependencies]
+pheno-errors = { path = "../../../pheno-errors" }
+pheno-tracing = { path = "../../../pheno-tracing" }
+pheno-config = { path = "../../../Configra/crates/pheno-config" }
+tracing = "0.1"
+
+[dev-dependencies]

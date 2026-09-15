@@ -1,0 +1,100 @@
+{
+  "task": "V3 DAG L4 #61",
+  "title": "PlayCua hex refactor — introduce 3 port traits (Renderer / WindowManager / InputSource)",
+  "date": "2026-06-11",
+  "branch": "chore/l4-61-playcua-hex-2026-06-11",
+  "worktree": "PlayCua/.worktrees/l4-61-playcua-hex-2026-06-11",
+  "status": "complete",
+  "summary": [
+    "Authored three standalone port-trait crates under PlayCua/crates/ (port-renderer, port-window-mgr, port-input) plus a playcua-app composition-root crate that wires the three trait objects together.",
+    "Each port crate is dependency-light (thiserror 2.0 only), object-safe (no associated types, no generic methods, only &self receivers, Send + Sync super-traits), and follows the L3 #46 / L3 #49 / L3 #57 standalone-crate convention (empty [workspace] table in its own Cargo.toml; not a member of the root workspace).",
+    "playcua-app is the only crate that depends on the three port crates (via path deps) and demonstrates the canonical hex-refactor composition-root pattern: the application core takes Box<dyn Renderer> / Box<dyn WindowManager> / Box<dyn InputSource> and dispatches through the trait boundary.",
+    "Verification: all 4 crates pass cargo test (28 tests total: 12 unit + 12 integration + 4 doctest) and cargo clippy --all-targets -- -D warnings (clean) and cargo fmt --check (clean). cargo run -p playcua-app prints the expected smoke output end-to-end."
+  ],
+  "ports": {
+    "port-renderer": {
+      "trait": "Renderer: Send + Sync",
+      "method": "fn render(&self, frame: &Frame) -> Result<RenderOutput, RenderError>",
+      "errors": ["InvalidFrame(String)", "Backend(String)", "UnsupportedFormat(PixelFormat)"],
+      "tests": 8
+    },
+    "port-window-mgr": {
+      "trait": "WindowManager: Send + Sync",
+      "methods": [
+        "fn list(&self) -> Result<Vec<Window>, WmError>",
+        "fn focus(&self, id: WindowId) -> Result<(), WmError>"
+      ],
+      "errors": ["ListFailed(String)", "WindowNotFound(WindowId)", "FocusDenied(String)"],
+      "tests": 8
+    },
+    "port-input": {
+      "trait": "InputSource: Send + Sync",
+      "method": "fn next_event(&self) -> Result<InputEvent, InputError>",
+      "errors": ["TransportClosed(String)", "MalformedEvent(String)"],
+      "tests": 8
+    }
+  },
+  "composition_root": {
+    "crate": "playcua-app",
+    "wires": "Box<dyn Renderer> + Box<dyn WindowManager> + Box<dyn InputSource>",
+    "entry": "fn main() { let app = playcua_app::build_app(in_tree_mocks::renderer(), in_tree_mocks::window_mgr(), in_tree_mocks::input_source()); }",
+    "in_tree_mocks": [
+      "EchoRenderer (echoes frame dimensions back, no-op default for headless CI)",
+      "EmptyWindowMgr (returns Vec::new(), focus is no-op)",
+      "HelloInputSource (emits Key(\"h\") Press event on every poll)"
+    ],
+    "tests": 4
+  },
+  "scope": {
+    "created": [
+      "crates/port-renderer/Cargo.toml",
+      "crates/port-renderer/src/lib.rs",
+      "crates/port-renderer/tests/renderer_test.rs",
+      "crates/port-window-mgr/Cargo.toml",
+      "crates/port-window-mgr/src/lib.rs",
+      "crates/port-window-mgr/tests/window_mgr_test.rs",
+      "crates/port-input/Cargo.toml",
+      "crates/port-input/src/lib.rs",
+      "crates/port-input/tests/input_test.rs",
+      "crates/playcua-app/Cargo.toml",
+      "crates/playcua-app/src/lib.rs",
+      "crates/playcua-app/src/main.rs"
+    ],
+    "modified": []
+  },
+  "verification": {
+    "command": "cargo test --manifest-path crates/<port|app>/Cargo.toml + cargo clippy --manifest-path crates/<port|app>/Cargo.toml --all-targets -- -D warnings + cargo fmt --check --manifest-path crates/<port|app>/Cargo.toml",
+    "per_crate": {
+      "port-renderer": "8/8 tests pass (3 unit + 4 integration + 1 doctest); clippy clean; fmt clean",
+      "port-window-mgr": "8/8 tests pass (3 unit + 4 integration + 1 doctest); clippy clean; fmt clean",
+      "port-input": "8/8 tests pass (3 unit + 4 integration + 1 doctest); clippy clean; fmt clean",
+      "playcua-app": "4/4 tests pass (3 unit + 1 doctest); clippy clean; fmt clean; cargo run prints expected smoke output"
+    },
+    "total_tests": 28,
+    "total_passed": 28,
+    "total_failed": 0,
+    "rust_edition": "2021",
+    "rust_msrv": "1.75.0 (per root rust-toolchain.toml)"
+  },
+  "spec_alignment": "The L4 #61 spec called for three port traits (Renderer, WindowManager, InputSource) plus a playcua-app composition root that depends on all three port traits via trait objects. All three trait signatures match the spec verbatim, including the Send + Sync super-traits, the Result<_, TError> return shape, and the Box<dyn Trait> composition pattern in playcua-app. The spec's required test names are present verbatim: renderer_renders_known_frame (port-renderer/tests/renderer_test.rs), window_manager_lists_empty (port-window-mgr/tests/window_mgr_test.rs), input_source_emits_test_event (port-input/tests/input_test.rs). Each port crate has >= 3 tests (it has 8 each: 3 unit + 4 integration + 1 doctest), well above the 9-total floor. playcua-app is a binary + library crate (lib.rs holds the composition root logic and is testable; main.rs is the entry point that calls build_app and runs a smoke loop). Each port crate is a standalone package (empty [workspace] in its own Cargo.toml), matching the L3 #46 / L3 #49 / L3 #57 convention. The root Cargo.toml's [workspace.members] is intentionally NOT touched, to keep the new crates' test/build loop independent of the 1-crate root workspace and to avoid colliding with other L4 agents concurrently editing the root manifest.",
+  "spec_deviations": "None. All 12 L4 #61 deliverable items are present: (a) port-renderer with the exact trait signature; (b) port-window-mgr with the exact trait signatures; (c) port-input with the exact trait signature; (d) playcua-app with Box<dyn Trait> composition root; (e) >= 3 tests per port, well above the 9-total floor; (f) per-crate cargo test + cargo clippy clean; (g) the canonical commit message; (h) worklog written per schema; (i) V3 execution log appended. The only side artifact is the small in-tree mock adapter set (in_tree_mocks) inside playcua-app/src/lib.rs, which exists so the binary has a runnable default and so the integration doctest in the crate root has a concrete example. The mocks have no relationship to the real platform adapters (X11 / NSWorkspace / EnumWindows / enigo) and are explicitly documented as a 'scaffolding default that production builds would replace'.",
+  "constraints_respected": [
+    "Branch is local-only (chore/l4-61-playcua-hex-2026-06-11 off master, 1 commit ahead, NOT pushed to origin).",
+    "Worktree isolation: PlayCua/.worktrees/l4-61-playcua-hex-2026-06-11 keeps the change off the canonical PlayCua worktree.",
+    "Each port crate is standalone (empty [workspace] in own Cargo.toml) per the L3 #46 / L3 #49 / L3 #57 convention; the root Cargo.toml's [workspace.members] is NOT touched.",
+    "No async runtime pulled in by the new crates. The public API of all three port traits is fully synchronous; playcua-app is a sync binary.",
+    "No FFI, no uniffi, no platform-specific deps in the new crates. Adapters for X11 / NSWorkspace / EnumWindows / enigo live in their own crates, completely outside the port-trait crates.",
+    "Object-safety: all three port traits are object-safe by construction (no associated types, no generic methods, only &self receivers, Send + Sync super-traits). This is the load-bearing invariant that makes Box<dyn Trait> storage in the composition root possible.",
+    "Error model: all three error enums (RenderError, WmError, InputError) are thiserror-derived, Send + Sync + 'static, and expose a stable kind(&self) -> &'static str tag for log fields and metrics labels."
+  ],
+  "downstream": [
+    "L4-#62 / L4-#63 (real adapter crates) can depend on the port crates and implement the traits; the composition root in playcua-app then becomes a 1-line swap from in_tree_mocks to the real adapter at the build_app() call site.",
+    "L5-#88 (helioscli integration) can pull playcua-app as a path dep and reuse the App struct as the host's process-wide application core.",
+    "Existing native/ports/mod.rs (CapturePort, InputPort, WindowPort, ProcessPort, AnalysisPort) is left in place — it predates this refactor and uses async-trait + domain types from playcua_native. The new port-* crates under crates/ are the independent L4 #61 hex-refactor scaffolding with sync trait signatures. A future migration could move the native port impls onto these new traits, but that's out of scope for L4 #61."
+  ],
+  "no_touch": [
+    "Other L4 tasks (L4-#33 WindowCapturer port, L4-#34 ProcessSpawner port, L4-#70 PlayCua merge, L4-#42 hex-port-integration)",
+    "Root Cargo.toml [workspace.members] (new crates are standalone packages, not workspace members)",
+    "native/ports/mod.rs (left in place; new port crates are independent L4 #61 scaffolding)"
+  ]
+}

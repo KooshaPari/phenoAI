@@ -1,0 +1,18 @@
+[package]
+name = "playcua-bare"
+version = "0.1.0"
+edition = "2021"
+authors = ["playcua contributors"]
+license = "MIT"
+description = "Scaffold crate for the bare-cua core types merge into PlayCua (L4 #70)"
+repository = "https://github.com/KooshaPari/PlayCua"
+rust-version = "1.75"
+
+[workspace]
+
+[dependencies]
+# Placeholder — no external deps yet.
+# Phase 3 will add: serde, serde_json, tokio, async-trait, tracing, etc.
+
+[dev-dependencies]
+# Placeholder — no tests yet (scaffolding task).

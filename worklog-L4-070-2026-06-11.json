@@ -1,0 +1,38 @@
+{
+  "task": "V3 DAG L4 #70",
+  "title": "Polyrepo split: PlayCua + bare-cua merge Phase 1",
+  "date": "2026-06-11",
+  "branch": "chore/l4-70-playcua-merge-2026-06-11",
+  "worktree": "../PlayCua-wt-l4-70",
+  "plan": "plans/2026-06-09-playcua-barecua-merge-plan-v1.md",
+  "phase": 1,
+  "status": "complete",
+  "summary": [
+    "Consolidated the canonical Rust workspace under PlayCua with native as the workspace member.",
+    "Renamed the merged Rust crate from bare-cua-native to playcua-native at version 0.1.0.",
+    "Renamed the Rust library crate from bare_cua_native to playcua_native.",
+    "Renamed CLI and MCP binaries to playcua-cli and playcua-mcp.",
+    "Aligned Python package metadata and package directory to playcua.",
+    "Added DEPRECATED_BARE_CUA.md and README banner documenting bare-cua as a frozen separate repository."
+  ],
+  "verification": {
+    "command": "CARGO_TARGET_DIR=/tmp/playcua-l4-70-target cargo build --workspace -q",
+    "cwd": "/Users/kooshapari/CodeProjects/Phenotype/repos/PlayCua-wt-l4-70",
+    "result": "passed",
+    "notes": [
+      "Initial default-target builds blocked on a shared Cargo artifact lock.",
+      "Isolated target directory avoided cross-worktree artifact lock contention.",
+      "Build completed with existing dead-code warnings only."
+    ]
+  },
+  "tag": {
+    "name": "v0.1.0",
+    "type": "annotated",
+    "created": true
+  },
+  "deprecation": {
+    "deprecated_repo": "bare-cua",
+    "canonical_repo": "PlayCua",
+    "migration_notes_file": "DEPRECATED_BARE_CUA.md"
+  }
+}

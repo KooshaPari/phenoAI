@@ -1,18 +1,20 @@
 ## Summary
-<!-- 1-3 bullet points describing what changed and why -->
+
+<!-- What does this PR do, in 1-3 sentences -->
 
 ## Changes
-<!-- Specific files/components affected -->
 
-## Test plan
-<!-- How to verify the change works as expected -->
-- [ ] Unit tests pass (`cargo test --workspace`)
-- [ ] Linter clean (`cargo clippy --workspace -- -D warnings`)
-- [ ] Format clean (`cargo fmt --check`)
-- [ ] Manual verification (if applicable)
+<!-- Bullet list of key changes -->
+- 
 
-## Checklist
-- [ ] No new lint suppressions without inline justification
-- [ ] CHANGELOG.md updated (if user-facing)
-- [ ] Docs updated (if API-facing)
-- [ ] Cargo.lock committed (if Cargo.toml changed)
+## Testing
+
+<!-- How was this verified? -->
+- [ ] Local lint passes
+- [ ] Local tests pass
+- [ ] Manual smoke test (if applicable)
+
+## Related
+
+<!-- Issues/PRs/specs this addresses -->
+Closes #

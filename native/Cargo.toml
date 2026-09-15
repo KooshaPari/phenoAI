@@ -1,0 +1,149 @@
+[package]
+name = "playcua-native"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "playcua-native"
+path = "src/main.rs"
+
+# Guest-side sandbox I/O tunnel: stdio NDJSON JSON-RPC 2.0
+# (screenshot / input.* / windows.*). Spawned by SandboxDriver /
+# BridgeClient when PLAYCUA_BRIDGE_BIN is unset.
+# Build: cargo build --locked -p playcua-native --bin playcua-bridge
+[[bin]]
+name = "playcua-bridge"
+path = "src/bin/playcua-bridge.rs"
+
+[[bin]]
+name = "playcua-mcp"
+path = "src/bin/playcua-mcp.rs"
+required-features = ["mcp-server"]
+
+[[bin]]
+name = "playcua-cli"
+path = "src/bin/playcua-cli.rs"
+
+# L7 #134 — hermetic spawn test binary. Runs as `cargo run --bin
+# hermetic_spawn_test`. Spawns a fake-backend shell script that
+# prints FAKE-ALIVE then exits, and verifies the spawn/shutdown
+# pattern (tokio Command + libc killpg) the modality drivers use.
+# Cold-compile time is ~3s on this workspace.
+[[bin]]
+name = "hermetic_spawn_test"
+path = "src/bin/hermetic_spawn_test.rs"
+
+[lib]
+name = "playcua_native"
+path = "src/lib.rs"
+
+# L3 #41 — register the type-strictness integration test that lives at
+# the workspace root (`PlayCua/tests/type_strictness_test.rs`). The
+# spec'd location is the workspace root, but cargo only auto-discovers
+# integration tests under `<package>/tests/*.rs`; without this explicit
+# `[[test]]` entry, `cargo test --workspace` would not see the file.
+# Keeping the canonical source at the spec'd path means there is one
+# file to maintain; this entry just wires cargo to find it.
+[[test]]
+name = "type_strictness_test"
+path = "../tests/type_strictness_test.rs"
+
+# Phase 3 — wire the FR-annotated integration tests that live at the
+# workspace root. Each file's module-level doc comment cites the FR(s)
+# it covers; see `docs/specs/TRACEABILITY.md` for the full matrix.
+[[test]]
+name = "screenshot_test"
+path = "../tests/screenshot_test.rs"
+
+[[test]]
+name = "input_dispatch_test"
+path = "../tests/input_dispatch_test.rs"
+
+[[test]]
+name = "process_lifecycle_test"
+path = "../tests/process_lifecycle_test.rs"
+
+[[test]]
+name = "analysis_hash_test"
+path = "../tests/analysis_hash_test.rs"
+
+[[test]]
+name = "modality_ping_test"
+path = "../tests/modality_ping_test.rs"
+
+[dependencies]
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+async-trait.workspace = true
+base64.workspace = true
+image.workspace = true
+blake3.workspace = true
+fast_image_resize.workspace = true
+enigo.workspace = true
+xcap.workspace = true
+libc = "0.2"
+rmcp.workspace = true
+schemars.workspace = true
+clap.workspace = true
+axum.workspace = true
+tower.workspace = true
+
+# pheno-* fleet crates (L5 #81 PlayCua full integration).
+#   - pheno-errors:  canonical AppError type used by the top-level
+#                    `Result`/`main` signature.
+#   - pheno-tracing: JSON-to-stderr tracing init (replaces the
+#                    hand-rolled `tracing_subscriber::fmt()` chain
+#                    that lived in main.rs before this change).
+#   - pheno-flags:   env-driven boolean feature flags (loaded from
+#                    `PLAYCUA_*` env vars at startup).
+pheno-errors  = { workspace = true }
+pheno-tracing = { workspace = true }
+pheno-flags   = { workspace = true }
+
+[features]
+# Default = stdio JSON-RPC 2.0 server (CLI / pipe-mode launchers).
+default = []
+# `mcp-server` = expose the 14 IPC methods as MCP tools (stdio or streamable-http).
+# Build with: cargo build --bin playcua-mcp --features mcp-server
+mcp-server = []
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62.2", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_System_Threading",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Graphics_Capture",
+    "Graphics_DirectX",
+    "Graphics_DirectX_Direct3D11",
+    "Win32_System_WinRT_Direct3D11",
+    "Win32_System_WinRT_Graphics_Capture",
+    "Win32_System_Com",
+    "Foundation",
+    "Foundation_Collections",
+] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+xcb = "1.7"
+x11rb = { version = "0.14", features = ["all-extensions"] }
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+wiremock = "0.6"
+
+[profile.release]
+opt-level = 3
+strip = true
+lto = true
+codegen-units = 1

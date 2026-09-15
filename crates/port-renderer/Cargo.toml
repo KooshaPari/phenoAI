@@ -1,0 +1,16 @@
+[workspace]
+
+[package]
+name = "port-renderer"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+description = "Renderer port trait for the PlayCua hex refactor (L4 #61). Defines the abstract boundary between the application core and any concrete rendering backend (CPU pixel buffer, OpenGL, Vulkan, WebGPU, headless software renderer, etc.)."
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+thiserror = "2.0"

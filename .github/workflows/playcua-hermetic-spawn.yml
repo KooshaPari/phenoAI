@@ -1,0 +1,44 @@
+name: Hermetic spawn
+
+# Cheap Ubuntu job that exercises the modality drivers' spawn/kill pattern
+# via `hermetic_spawn_test` (no host sandbox binary required).
+# Billing note: KooshaPari Actions free tier is often exhausted — run locally:
+#   cargo run --locked --manifest-path native/Cargo.toml --bin hermetic_spawn_test
+#   cargo run --locked --manifest-path native/Cargo.toml --bin hermetic_spawn_test -- --kill
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hermetic-spawn:
+    name: hermetic_spawn_test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native
+      - name: Spawn leg
+        run: cargo run --locked --manifest-path native/Cargo.toml --bin hermetic_spawn_test
+      - name: Kill leg
+        run: cargo run --locked --manifest-path native/Cargo.toml --bin hermetic_spawn_test -- --kill
+      - name: Unit + integration (locked)
+        run: cargo test --locked --manifest-path native/Cargo.toml --lib modality::
+        env:
+          PLAYCUA_SANDBOX_BACKEND: direct

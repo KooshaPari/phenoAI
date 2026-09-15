@@ -1,0 +1,22 @@
+[workspace]
+
+[package]
+name = "playcua-app"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+description = "PlayCua hex-refactor composition root (L4 #61). Wires the three port traits (Renderer / WindowManager / InputSource) into a single App via trait objects and shows the canonical composition-root pattern for the PlayCua hex refactor."
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "playcua-app"
+path = "src/main.rs"
+
+[dependencies]
+port-renderer = { path = "../port-renderer" }
+port-window-mgr = { path = "../port-window-mgr" }
+port-input = { path = "../port-input" }

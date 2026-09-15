@@ -1,0 +1,16 @@
+[workspace]
+
+[package]
+name = "port-input"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+description = "InputSource port trait for the PlayCua hex refactor (L4 #61). Defines the abstract boundary between the application core and any concrete input-event source (enigo synthetic events, recorded playback from a .pcua trace, WebDriver / DevTools event stream, mock event queue for tests, etc.)."
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+thiserror = "2.0"
