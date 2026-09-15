@@ -1,0 +1,157 @@
+[package]
+name = "eidolon-sandbox"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# Live Docker Engine API via bollard (KDesktopVirt Phase C extract hooks).
+# Daemon absent → fail-loud `EIDOLON_SANDBOX_DOCKER_STUB`. Live lifecycle tests:
+# DOCKER_INTEGRATION=1 (requires a reachable Docker daemon).
+sandbox-docker = ["dep:bollard", "dep:futures-util"]
+# Live nanoVMs via system `ops` CLI (no bundled binaries). CLI absent →
+# fail-loud `EIDOLON_SANDBOX_NANOVM_STUB`. Hermetic start = `ops version`;
+# compose `LaunchPlan` via `OpsNanoVmClient::try_from_plan`; live `ops run`
+# when `NANOVM_INTEGRATION=1` / `UNIKERNEL_BOOT_INTEGRATION=1`. Guest serial
+# exec when live child + `UNIKERNEL_EXEC_INTEGRATION=1`.
+sandbox-nanovm = []
+# Live Firecracker/KVM via system `firecracker` CLI. CLI absent → fail-loud
+# `EIDOLON_SANDBOX_KVM_STUB`. Hermetic start = `firecracker --version`;
+# compose `LaunchPlan` via `FirecrackerKvmClient::try_from_plan`; live boot
+# when `FIRECRACKER_INTEGRATION=1` / `UNIKERNEL_BOOT_INTEGRATION=1`. Guest
+# serial exec when live child + `UNIKERNEL_EXEC_INTEGRATION=1`.
+sandbox-kvm = []
+# Phase D session persistence — enables `FileSessionStore` (memory + fail-loud
+# UnavailableSessionStore always compile). Explicit path required; no silent home default.
+sandbox-session = []
+# Phase D Redis session adapter — enables `RedisSessionStore` (wraps `redis`
+# crate). Explicit URL required; missing URL / connect / PING → fail-loud
+# `EIDOLON_SANDBOX_SESSION_REDIS` / `EIDOLON_SANDBOX_SESSION_IO`. Live CRUD:
+# REDIS_SESSION_INTEGRATION=1.
+sandbox-session-redis = ["dep:redis"]
+# Phase D audit compliance — enables `FileAuditStore` + SHA-256 integrity
+# (`sha2`). Memory + fail-loud UnavailableAuditStore always compile.
+sandbox-audit = ["dep:sha2"]
+# Live Linux Landlock filesystem (and best-effort TCP) enforcement via the
+# `landlock` crate. Off-platform / feature-off / unsupported kernel → fail-loud
+# `EIDOLON_SANDBOX_LANDLOCK_UNSUPPORTED`. Integration: LANDLOCK_INTEGRATION=1.
+sandbox-landlock = ["dep:landlock"]
+# Live Linux cgroup v2 memory/CPU + disk I/O (`io.max`) limit application.
+# Off-platform / feature-off / non-writable hierarchy → fail-loud
+# `EIDOLON_SANDBOX_CGROUP_UNSUPPORTED`. When `SandboxPolicy.disk_mib` is `Some`,
+# writes `io.max` rbps/wbps for `EIDOLON_CGROUP_DISK_DEV` (or detected device);
+# missing device / io controller → `EIDOLON_SANDBOX_CGROUP_DISK_UNAVAILABLE`
+# (cgroup v2 has no portable capacity quota). Integration: CGROUP_INTEGRATION=1.
+sandbox-cgroup = []
+# Live Linux namespace unshare + PID-ns fork + mount pivot_root via `nix`.
+# Off-platform / feature-off / capability denial → fail-loud
+# `EIDOLON_SANDBOX_NAMESPACES_UNSUPPORTED`. Integration: NAMESPACES_INTEGRATION=1.
+# When `NamespacePlan.pid` / `EIDOLON_SANDBOX_NS_PID=1`, unshare(NEWPID)+fork so
+# the child is PID 1 (`pid_ns_isolates_caller`); parent tracks host PID.
+# USER ns maps (`EIDOLON_SANDBOX_NS_USER=1`): identity via `/proc`; multi-range
+# via `newuidmap`/`newgidmap` (+ optional `EIDOLON_SANDBOX_NS_USER_SUBIDS=1`).
+# When `EIDOLON_SANDBOX_NS_PIVOT=1` + `EIDOLON_SANDBOX_NS_PIVOT_ROOTFS`, after
+# CLONE_NEWNS perform pivot_root (`pivot_root_applied`); fail-loud if missing.
+sandbox-namespaces = ["dep:nix", "dep:libc"]
+# Live Linux seccomp-bpf via `seccompiler`. Off-platform / feature-off /
+# unsupported arch / kernel → fail-loud `EIDOLON_SANDBOX_SECCOMP_UNSUPPORTED`.
+# Integration: SECCOMP_INTEGRATION=1. Profiles via EIDOLON_SECCOMP_PROFILE:
+# block-dangerous (default) | oci-default | /path/to/oci.json (fail-loud).
+sandbox-seccomp = ["dep:seccompiler", "dep:libc"]
+# Unikernel / microVM rootfs launch scaffolding. Always-on config + probe +
+# plan→argv (`unikernel::boot`) + serial exec types (`unikernel::exec`) +
+# vsock NDJSON framing (`unikernel::vsock`). Feature enables
+# `UnikernelGuestClient` (hermetic preflight; live spawn when
+# `UNIKERNEL_BOOT_INTEGRATION=1` / `FIRECRACKER_INTEGRATION=1` /
+# `NANOVM_INTEGRATION=1`; serial exec when live child +
+# `UNIKERNEL_EXEC_INTEGRATION=1`). Rootfs via path / `EIDOLON_ROOTFS`; kernel
+# via path / `EIDOLON_KERNEL`. Live AF_VSOCK → `sandbox-vsock`.
+sandbox-unikernel = []
+# Live Linux AF_VSOCK guest agent I/O (`unikernel::vsock`). Always-on NDJSON
+# framing + macOS/feature-off fail-loud. Feature enables `connect(AF_VSOCK)`
+# on Linux. Live round-trips require `UNIKERNEL_VSOCK_INTEGRATION=1` + guest
+# agent listening on CID/port (`EIDOLON_VSOCK_CID` / `EIDOLON_VSOCK_PORT` to
+# prefer vsock over serial). See docs/reference/unikernel-vsock-protocol.md.
+sandbox-vsock = ["dep:libc"]
+# In-guest vsock NDJSON agent binary (`eidolon-vsock-agent`). Library framing
+# + handler always-on under `unikernel::vsock_agent` (macOS-safe unit tests).
+# Feature builds the bin and enables Linux AF_VSOCK listen. macOS builds of
+# the bin fail loud at runtime. See docs/guides/vsock-guest-agent.md.
+sandbox-vsock-agent = ["dep:libc"]
+# Rootfs / guest image packaging (`unikernel::pack`). Always-on hermetic
+# builder (validate + optional stage copy/link + manifest JSON). Feature
+# enables SHA-256 checksums + live pipelines (`mkfs.ext4` / `virt-make-fs` /
+# `docker export` / compose `DockerToExt4`) when `ROOTFS_PACK_INTEGRATION=1`.
+# DockerExport alone is always Raw (tar) — never claim Ext4 without mkfs.
+# Missing tools → `EIDOLON_SANDBOX_ROOTFS_PACK_TOOL_MISSING`; command failure →
+# `EIDOLON_SANDBOX_ROOTFS_PACK_IO`. Feature/env off →
+# `EIDOLON_SANDBOX_ROOTFS_PACK_STUB`. Canned pipeline (`pack::canned` /
+# `eidolon-canned-rootfs`) always-on for tree-only; live Ext4 + agent pin
+# SHA-256 need this feature. GH release staging + pin fetch:
+# `pack::release_asset` / `eidolon-release-rootfs` / `eidolon-fetch-rootfs`
+# (see docs/guides/gh-ext4-release.md + docs/guides/canned-rootfs.md).
+# libc: Linux namespaces module references libc unconditionally; pull it in
+# whenever pack tooling builds on Linux so `sandbox-rootfs-pack` alone links.
+sandbox-rootfs-pack = ["dep:sha2", "dep:libc"]
+# Virtual display manager (`virtual_display`). Always-on probes + hermetic
+# `plan_xvfb` on Linux. Feature enables live Xvfb child spawn when
+# `XVFB_INTEGRATION=1`. VNC attach + Wayland compositor isolation remain
+# fail-loud (`EIDOLON_SANDBOX_VNC_UNSUPPORTED` /
+# `EIDOLON_SANDBOX_WAYLAND_COMPOSITOR_UNSUPPORTED`). macOS/Windows →
+# `EIDOLON_SANDBOX_VIRTUAL_DISPLAY_UNSUPPORTED`. See docs/guides/virtual-display.md.
+sandbox-virtual-display = []
+
+[[bin]]
+name = "eidolon-vsock-agent"
+path = "src/bin/eidolon_vsock_agent.rs"
+required-features = ["sandbox-vsock-agent"]
+
+[[bin]]
+name = "eidolon-canned-rootfs"
+path = "src/bin/eidolon_canned_rootfs.rs"
+# Tree-only works without features; enable sandbox-rootfs-pack for Ext4 pack
+# and optional SHA-256 agent pin fetch.
+
+[[bin]]
+name = "eidolon-release-rootfs"
+path = "src/bin/eidolon_release_rootfs.rs"
+# Stage versioned Ext4 + SHA-256 for gh release upload. Checksums + --build
+# need feature sandbox-rootfs-pack (+ ROOTFS_PACK_INTEGRATION for --build).
+
+[[bin]]
+name = "eidolon-fetch-rootfs"
+path = "src/bin/eidolon_fetch_rootfs.rs"
+# Resolve / fetch pinned GH Ext4 release asset (UIA2-shaped). Fail-loud when
+# pin unpublished. SHA-256 verify / fetch need sandbox-rootfs-pack.
+
+
+[dependencies]
+eidolon-core = { path = "../eidolon-core" }
+tokio.workspace = true
+log.workspace = true
+tracing.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+uuid.workspace = true
+bollard = { workspace = true, optional = true }
+futures-util = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+# wraps: redis 1.4 — async Redis/Valkey client (`sandbox-session-redis`).
+redis = { workspace = true, optional = true }
+
+# wraps: nix 0.31 — sched::unshare + unistd::fork + mount/pivot_root for
+#   namespaces (Linux-only; cfg-gated).
+# wraps: landlock 0.4 — Landlock LSM helpers (Linux-only; cfg-gated).
+[target.'cfg(target_os = "linux")'.dependencies]
+landlock = { workspace = true, optional = true }
+nix = { workspace = true, optional = true }
+libc = { workspace = true, optional = true }
+
+# wraps: seccompiler 0.5 — seccomp-bpf (Linux little-endian only; cfg-gated).
+[target.'cfg(all(target_os = "linux", target_endian = "little"))'.dependencies]
+seccompiler = { workspace = true, optional = true }
+

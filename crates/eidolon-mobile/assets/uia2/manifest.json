@@ -1,0 +1,17 @@
+{
+  "source": "https://github.com/appium/appium-uiautomator2-server",
+  "license": "Apache-2.0",
+  "version": "v10.3.2",
+  "server": {
+    "filename": "appium-uiautomator2-server-v10.3.2.apk",
+    "url": "https://github.com/appium/appium-uiautomator2-server/releases/download/v10.3.2/appium-uiautomator2-server-v10.3.2.apk",
+    "sha256": "8463a42f7701bf29d07571089e189ff10178c5f6dab2b65ae8cce7018d44fbd8",
+    "bytes": 17936039
+  },
+  "test": {
+    "filename": "appium-uiautomator2-server-debug-androidTest.apk",
+    "url": "https://github.com/appium/appium-uiautomator2-server/releases/download/v10.3.2/appium-uiautomator2-server-debug-androidTest.apk",
+    "sha256": "3eb8ed926f98a0b29248f0271c8d4df2fd34977298f79645e685338d971630cc",
+    "bytes": 197183
+  }
+}

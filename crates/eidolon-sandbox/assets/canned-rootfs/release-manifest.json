@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "published": true,
+  "version": "0.1.0",
+  "arch": "x86_64",
+  "filename": "eidolon-canned-rootfs-0.1.0-x86_64.ext4.img",
+  "sha256_sidecar": "eidolon-canned-rootfs-0.1.0-x86_64.ext4.img.sha256",
+  "image_path": "",
+  "sha256": "edee5005e4b206667faff33decbada12d57fb825d59cdb659b838f4857368b03",
+  "bytes": 67108864,
+  "url": "https://github.com/KooshaPari/Eidolon/releases/download/rootfs-v0.1.0/eidolon-canned-rootfs-0.1.0-x86_64.ext4.img",
+  "honesty": "Default GH Ext4 pin filled for rootfs-v0.1.0 (vsock-agent baked). Override with EIDOLON_ROOTFS_ASSET_URL+EIDOLON_ROOTFS_ASSET_SHA256 or EIDOLON_ROOTFS_IMG. See docs/guides/gh-ext4-release.md.",
+  "source": "https://github.com/KooshaPari/Eidolon/releases/tag/rootfs-v0.1.0",
+  "repository": "https://github.com/KooshaPari/Eidolon"
+}
