@@ -1,0 +1,16 @@
+Appium UiAutomator2 Server APKs
+================================
+
+This directory vendors / caches official release artifacts from:
+
+  https://github.com/appium/appium-uiautomator2-server
+
+Copyright contributors to Appium UiAutomator2 Server.
+Licensed under the Apache License, Version 2.0 — see LICENSE in this directory.
+
+Pinned release: v10.3.2
+  - appium-uiautomator2-server-v10.3.2.apk
+  - appium-uiautomator2-server-debug-androidTest.apk
+
+Eidolon does not redistribute kmobile or other satellite archives.
+SHA-256 digests are pinned in manifest.json and verified on fetch/resolve.

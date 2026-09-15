@@ -1,16 +1,26 @@
-# PhenoAI - AI/LLM Workspace
+# PhenoAI - AI/LLM Agent Workspace
 #
 # Contains AI-related crates:
 # - llm-router: LLM routing — substrate::omniroute-adapter shim
 #                (the actual routing logic lives in KooshaPari/substrate;
 #                 phenoAI delegates to it via a Cargo git dep)
 # - mcp-server: MCP protocol server
-# - embedding: Embedding pipeline
+# - pheno-embedding: Embedding pipeline
+# - eidolon-core: Core agent runtime
+# - eidolon-desktop: Desktop GUI
+# - eidolon-mobile: iOS/Android mobile agent
+# - eidolon-sandbox: Sandbox isolation (Docker/nanoVM/KVM/unikernel)
+# - phenotype-error-core: Shared error types
 [workspace]
 members = [
     "crates/llm-router",
     "crates/mcp-server",
     "crates/pheno-embedding",
+    "crates/eidolon-core",
+    "crates/eidolon-desktop",
+    "crates/eidolon-mobile",
+    "crates/eidolon-sandbox",
+    "crates/phenotype-error-core",
 ]
 resolver = "3"
 

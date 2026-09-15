@@ -1,0 +1,12 @@
+# Eidolon canned stub rootfs
+
+This directory is a **minimal hermetic fixture**, not a bootable Linux userland.
+
+The canned pipeline (`unikernel::pack::canned` / `eidolon-canned-rootfs`) copies
+this tree (or seeds an equivalent layout) and stages `eidolon-vsock-agent` at
+`usr/local/bin/eidolon-vsock-agent`.
+
+Real Ext4 release disks are built on Linux with `mkfs.ext4` / `virt-make-fs`
+(or `DockerToExt4`) and a musl `eidolon-vsock-agent` binary. Versioned GH
+release staging + pin/fetch: see `docs/guides/gh-ext4-release.md` (default
+pin unpublished until one-shot publish).

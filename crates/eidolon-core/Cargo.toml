@@ -1,0 +1,35 @@
+[package]
+name = "eidolon-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+log.workspace = true
+tracing.workspace = true
+async-trait.workspace = true
+uuid.workspace = true
+phenotype-error-core.workspace = true
+
+[dev-dependencies]
+# Criterion: stats-driven benchmark harness. 0.5 is the minimum version
+# that integrates with `tokio::runtime::Runtime::block_on` for async
+# benches and is already vendored in the offline cargo cache.
+criterion = "0.5"
+# proptest: property-based testing for event/trait invariant verification.
+proptest.workspace = true
+tokio = { version = "1.39", features = ["rt", "macros"] }
+
+# Criterion generates its own `fn main()` via `criterion_main!`. The
+# `harness = false` setting tells cargo not to wrap the bench binary
+# in the default libtest harness (which would override the
+# `criterion_main!` `main` and silently swallow every benchmark).
+# See criterion 0.5 `src/macros.rs:84-114` for the contract.
+[[bench]]
+name = "virtual_stage_dispatch"
+harness = false

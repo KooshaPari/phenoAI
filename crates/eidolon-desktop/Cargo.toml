@@ -1,0 +1,90 @@
+[package]
+name = "eidolon-desktop"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# System `ffmpeg` screen-capture + encode pipeline (KDesktopVirt Phase E).
+# No bundled binaries. Live capture tests: RECORDING_INTEGRATION=1.
+desktop-recording = []
+# Real Win32 `SendInput` pointer/keyboard + DXGI Desktop Duplication
+# (preferred) / GDI BitBlt → BMP screenshots.
+# Active only when compiling for `target_os = "windows"` (other targets keep
+# the fail-loud stub; this feature is a no-op for linking on macOS/Linux).
+# Destructive actions require `EIDOLON_DESKTOP_ALLOW_ACTIONS=1`.
+# Capture mode: `EIDOLON_DESKTOP_WIN_CAPTURE=auto|dxgi|gdi` (default auto).
+# wraps: windows 0.62 — https://crates.io/crates/windows
+desktop-windows = []
+# Explicit alias for DXGI-capable Windows desktop (enables `desktop-windows`).
+desktop-windows-dxgi = ["desktop-windows"]
+# Real X11 XTEST pointer/keyboard + GetImage → BMP screenshots, plus pure
+# Wayland xdg-desktop-portal Screenshot + RemoteDesktop/Screencast inject
+# (ashpd) when only WAYLAND_DISPLAY is set.
+# Active only when compiling for `target_os = "linux"` (other targets keep
+# the fail-loud stub; this feature is a no-op for linking on macOS/Windows).
+# Destructive actions require `EIDOLON_DESKTOP_ALLOW_ACTIONS=1`.
+# Portal missing/deny → `EIDOLON_DESKTOP_LINUX_WAYLAND_PORTAL_UNAVAILABLE`.
+# Started RemoteDesktop session without Pointer/Keyboard/stream →
+# `EIDOLON_DESKTOP_LINUX_WAYLAND_INPUT_UNSUPPORTED`.
+# Opt-in restore-token persistence: `EIDOLON_DESKTOP_WAYLAND_RESTORE=1`
+# (token at `$XDG_STATE_HOME/eidolon/wayland-restore-token` or
+# `EIDOLON_DESKTOP_WAYLAND_RESTORE_TOKEN_PATH`); store I/O →
+# `EIDOLON_DESKTOP_LINUX_WAYLAND_RESTORE_IO`.
+# wraps: x11rb 0.14 — https://crates.io/crates/x11rb
+# wraps: ashpd 0.11 — https://crates.io/crates/ashpd
+desktop-linux = []
+# wraps: atspi — https://crates.io/crates/atspi
+# AT-SPI a11y tree find/list/activate (Linux session bus). Not full Appium Desktop.
+# Active only on target_os=linux. Fail-loud when bus/registry unavailable.
+# Pin 0.24: MSRV 1.75 matches workspace; atspi ≥0.25 declares rust-version 1.77.2.
+desktop-linux-atspi = ["dep:atspi"]
+# Phase F: EncryptedVault (AES-GCM + Argon2id). wraps: aes-gcm, argon2, rand_core, sha2
+desktop-security-vault = ["dep:aes-gcm", "dep:argon2", "dep:rand_core", "dep:sha2"]
+# Phase F: OAuth2 Authorization Code + PKCE (S256). wraps: sha2, rand_core
+desktop-security-oauth = ["dep:sha2", "dep:rand_core"]
+
+[dependencies]
+eidolon-core = { path = "../eidolon-core" }
+tokio.workspace = true
+log.workspace = true
+async-trait.workspace = true
+aes-gcm = { workspace = true, optional = true }
+argon2 = { workspace = true, optional = true }
+rand_core = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+[target.'cfg(target_os = "macos")'.dependencies]
+core-graphics = "0.25"
+core-foundation = "0.10"
+objc2 = "0.6"
+objc2-foundation = "0.3"
+objc2-app-kit = "0.3"
+
+# Win32 bindings for the real driver (linked on Windows targets always so
+# `desktop-windows` can enable SendInput/DXGI/GDI without optional-dep gymnastics).
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.62", default-features = false, features = [
+    "Win32_Foundation",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D11",
+] }
+
+# X11 + portal bindings for the real Linux driver (linked on Linux targets
+# always so `desktop-linux` can enable XTEST/GetImage + ashpd Screenshot
+# without optional-dep gymnastics).
+# atspi is optional (heavy zbus stack) — enable via `desktop-linux-atspi`.
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = { version = "0.14", default-features = false, features = ["xtest"] }
+# wraps: ashpd 0.11 — xdg-desktop-portal Screenshot + RemoteDesktop/Screencast
+ashpd = { version = "0.11", default-features = false, features = ["tokio"] }
+atspi = { version = "0.24", default-features = false, features = ["tokio", "zbus"], optional = true }
+
+[dev-dependencies]
+serde_json.workspace = true

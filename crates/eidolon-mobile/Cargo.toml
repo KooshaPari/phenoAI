@@ -1,0 +1,76 @@
+[package]
+name = "eidolon-mobile"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# Live iOS driver via system `xcrun` / `xcodebuild` / `simctl` (no kmobile unarchive).
+# Tools absent → fail-loud `EIDOLON_MOBILE_IOS_STUB`. Hermetic construct = version probe;
+# list devices via `simctl`. Screenshot via gated `simctl io`. Tap/swipe/text/viewport
+# via `XcuiBridge` (`EIDOLON_IOS_XCUI_BUNDLE`, in-tree XCUITest runner discovery,
+# Rust `eidolon-xcui-helper` fallback, or `EIDOLON_IOS_ALLOW_APPLESCRIPT=1`).
+# Destructive actions require `EIDOLON_MOBILE_ALLOW_ACTIONS=1`.
+# Integration: `IOS_MOBILE_INTEGRATION=1`.
+mobile-ios = []
+# Live Android driver via system `adb` (UiAutomator-shaped shell). Tools absent →
+# fail-loud `EIDOLON_MOBILE_ANDROID_STUB`. Hermetic construct = `adb version`;
+# list via `adb devices`. Gated `adb shell input tap|swipe|text` + screencap are real.
+# Destructive actions require `EIDOLON_MOBILE_ALLOW_ACTIONS=1`.
+# Integration: `ANDROID_MOBILE_INTEGRATION=1`.
+mobile-android = []
+# UiAutomator2 instrumentation server lifecycle + Appium-compatible HTTP
+# session client (W3C windows/contexts/elements/actions/screenshot/timeouts
+# + Appium-shaped adb orchestration + ureq → :6790).
+# Requires `mobile-android`. APKs: env override → assets/uia2 → durable
+# SHA-256-verified cache (`eidolon-fetch-uia2` / `Uia2ApkPaths::ensure`).
+# Missing APK/server → `EIDOLON_MOBILE_UIA2_UNAVAILABLE`.
+# Install/start/stop + HTTP session/click gated by `EIDOLON_MOBILE_ALLOW_ACTIONS=1`.
+# Integration: `ANDROID_UIA2_INTEGRATION=1`.
+# wraps: ureq 2.12 — https://crates.io/crates/ureq
+mobile-uia2 = ["mobile-android", "dep:ureq"]
+# Optional Appium *server* discovery/probe (`appium` CLI / APPIUM_HOME /
+# EIDOLON_APPIUM_URL → GET /status). Hermetic when absent.
+# Implies `mobile-uia2`. Not Electron Appium Desktop GUI by itself —
+# enable `mobile-appium-desktop` for Inspector launcher + local dashboard.
+# Missing tools when required → `EIDOLON_MOBILE_APPIUM_UNAVAILABLE`.
+mobile-appium = ["mobile-uia2"]
+# Appium Inspector launcher + local HTML session dashboard.
+# Implies `mobile-appium`. Bin: `eidolon-appium-desktop`.
+mobile-appium-desktop = ["mobile-appium"]
+# Build the in-repo `eidolon-xcui-helper` binary (AppleScript/simctl fallback).
+# Prefer `native/ios/EidolonXcuiHelper` XCUITest runner when built.
+# Library argv/discovery always available; this feature only ships the Rust bin.
+# See `docs/guides/ios-xcui-helper.md`. Live xcodebuild: `EIDOLON_XCUI_XCODE_INTEGRATION=1`.
+mobile-xcui-helper = []
+
+[[bin]]
+name = "eidolon-xcui-helper"
+path = "src/bin/eidolon_xcui_helper.rs"
+required-features = ["mobile-xcui-helper"]
+
+[[bin]]
+name = "eidolon-fetch-uia2"
+path = "src/bin/eidolon_fetch_uia2.rs"
+required-features = ["mobile-uia2"]
+
+[[bin]]
+name = "eidolon-appium-desktop"
+path = "src/bin/eidolon_appium_desktop.rs"
+required-features = ["mobile-appium-desktop"]
+
+[dependencies]
+eidolon-core = { path = "../eidolon-core" }
+tokio.workspace = true
+log.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+uuid.workspace = true
+# SHA-256 verify for pinned Appium UIA2 APKs (assets/uia2 + durable cache).
+sha2.workspace = true
+# wraps: ureq 2.12 — blocking Appium UIA2 HTTP (`mobile-uia2`) + TLS fetch
+ureq = { workspace = true, optional = true }
