@@ -1,0 +1,15 @@
+[package]
+name = "pheno-capacity"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Pure-math library for VRAM estimation, model-fit scoring, and hardware capacity planning"
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "pheno_capacity"
+path = "src/lib.rs"
+
+[features]
+default = []
+alloc = []

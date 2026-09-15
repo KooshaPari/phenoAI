@@ -49,6 +49,10 @@ members = [
     "crates/pheno-compose-port-secret",
     "crates/pheno-compose-port-types",
     "crates/pheno-compose-secret-file-adapter",
+
+    # === Gateway (PR #105) ===
+    "crates/gateway",
+    "crates/pheno-capacity",
 ]
 resolver = "3"
 
